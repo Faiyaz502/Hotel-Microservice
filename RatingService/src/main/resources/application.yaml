@@ -1,16 +1,11 @@
 spring:
   application:
     name: RatingService
-  datasource:
-    url: jdbc:postgresql://localhost:5432/Microservice-hotel
-    driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: root
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017
+      database: Microservices-hotel
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
 
 server:
   port: 8083
