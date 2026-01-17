@@ -1,30 +1,38 @@
 package com.service.ratingService.RatingService.ServiceImpl;
 
+import com.service.ratingService.RatingService.Repositories.RatingRepo;
 import com.service.ratingService.RatingService.entities.Ratings;
 import com.service.ratingService.RatingService.service.RatingService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
-@Service
 
+
+@Service
+@RequiredArgsConstructor
 public class RatingServiceImpl implements RatingService {
+
+    private final RatingRepo ratingRepo;
+
+
     @Override
     public Ratings create(Ratings ratings) {
-        return null;
+
+        return ratingRepo.save(ratings);
     }
 
     @Override
     public List<Ratings> getAllRations() {
-        return List.of();
+        return ratingRepo.findAll();
     }
 
     @Override
     public List<Ratings> getRationsOfUser(String userId) {
-        return List.of();
+        return ratingRepo.findByUserId(userId);
     }
 
     @Override
     public List<Ratings> getRationOfHotel(String hotelId) {
-        return List.of();
+        return ratingRepo.findByHotelId(hotelId);
     }
 }
