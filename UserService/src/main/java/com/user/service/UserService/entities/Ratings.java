@@ -1,5 +1,6 @@
 package com.user.service.UserService.entities;
 
+
 import lombok.*;
 
 @Getter
@@ -19,8 +20,7 @@ public class Ratings {
 
         private String feedback;
 
-
-
+        private Hotel hotel;
 
 
 }
