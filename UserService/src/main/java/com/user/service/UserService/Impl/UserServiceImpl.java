@@ -4,6 +4,7 @@ import com.user.service.UserService.Exceptions.ResourceNotFoundException;
 import com.user.service.UserService.Repositories.UserRepository;
 import com.user.service.UserService.entities.Hotel;
 import com.user.service.UserService.entities.Ratings;
+import com.user.service.UserService.externalService.HotelService;
 import com.user.service.UserService.service.UserService;
 import com.user.service.UserService.entities.User;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
     private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+    private final HotelService hotelService;
 
 
     @Override
@@ -57,7 +59,7 @@ public class UserServiceImpl implements UserService {
         //==== http://localhost:8083/ratings/users/3277b3b6-4af9-480c-b2e1-64883eb737bf example call in postman
 
 
-        Ratings[] ratingsArr = restTemplate.getForObject("http://localhost:8083/ratings/users/"+user.getUserId(), Ratings[].class);
+        Ratings[] ratingsArr = restTemplate.getForObject("http://RATINGSERVICE/ratings/users/"+user.getUserId(), Ratings[].class);
 
        log.info(ratingsArr.toString());
 
@@ -71,9 +73,17 @@ public class UserServiceImpl implements UserService {
 
             //Fetch the hotels from the hotel service api
 
-            ResponseEntity<Hotel> res = restTemplate.getForEntity("http://localhost:8082/hotels/"+ratings1.getHotelId(), Hotel.class);
+            ResponseEntity<Hotel> res = restTemplate.getForEntity("http://HOTELSERVICE/hotels/"+ratings1.getHotelId(), Hotel.class);
 
              Hotel hotel = res.getBody();
+
+
+             //With Feign Client
+
+
+            Hotel hotelFeign = hotelService.getHotel(ratings1.getHotelId());
+
+            log.info("------------- Feign Client : "+ hotelFeign.getName(),hotelFeign.getAbout(),hotelFeign.getLocation());
 
 
 
