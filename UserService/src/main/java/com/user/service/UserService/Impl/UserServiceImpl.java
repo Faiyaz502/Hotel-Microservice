@@ -80,8 +80,12 @@ public class UserServiceImpl implements UserService {
 
              //With Feign Client
 
+            //can get directly hotel to by changing in externalService
+            ResponseEntity<Hotel> hotelRes = hotelService.getHotel(ratings1.getHotelId());
 
-            Hotel hotelFeign = hotelService.getHotel(ratings1.getHotelId());
+
+
+            Hotel hotelFeign = hotelRes.getBody();
 
             log.info("------------- Feign Client : "+ hotelFeign.getName(),hotelFeign.getAbout(),hotelFeign.getLocation());
 
@@ -96,7 +100,9 @@ public class UserServiceImpl implements UserService {
 
             //Set the hotel to rating
 
-            ratings1.setHotel(hotel);
+//            ratings1.setHotel(hotel);
+
+            ratings1.setHotel(hotelFeign);
 
 
             return ratings1;
