@@ -8,7 +8,7 @@ spring:
 
 #Importing data from the Config Server
   config:
-    import: configserver:http://localhost:8085
+    import: optional:configserver:http://localhost:8085
 
 server:
   port: 9093

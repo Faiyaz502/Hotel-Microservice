@@ -82,6 +82,8 @@
             <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
         </dependency>
 
+
+
         <!--HealthCheck-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -92,6 +94,8 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+
+
 
 
 

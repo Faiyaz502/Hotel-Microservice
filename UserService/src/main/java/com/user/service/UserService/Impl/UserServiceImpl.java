@@ -7,13 +7,20 @@ import com.user.service.UserService.entities.Ratings;
 import com.user.service.UserService.externalService.HotelService;
 import com.user.service.UserService.service.UserService;
 import com.user.service.UserService.entities.User;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -47,12 +54,20 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll();
     }
 
+
+    int retryCount = 1 ;
+
     @Override
+    @Retry(name = "ratingHotelRetry" , fallbackMethod = "RetryFallbackForFetchingUserById")
     public User getUserById(String id) {
 
         //Fetching from database
         User user = userRepository.findById(id).orElseThrow(() ->
                 new ResourceNotFoundException("ID is not found in the DB"));
+
+        retryCount++;
+
+        log.info("<<<Retry Value >>>  "+retryCount);
 
         ///  Fetch rating from Rating service
 
@@ -116,6 +131,28 @@ public class UserServiceImpl implements UserService {
 
     return user;
 
+    }
+
+
+    //Fallback Method Of Retry
+
+    public User RetryFallbackForFetchingUserById(String id, Exception ex) {
+        // Only handle network / server errors
+        if (ex instanceof HttpServerErrorException || ex instanceof ResourceAccessException || ex instanceof IOException) {
+
+            log.error("Retry fallback executed: " + ex.getMessage());
+
+            return User.builder()
+                    .userId(id)
+                    .name("Dummy User (Retry)")
+                    .email("dummyretry@gmail.com")
+                    .about("Service temporarily unavailable")
+                    .ratings(new ArrayList<>())
+                    .build();
+        } else {
+            // For ignored exceptions, rethrow to propagate to controller / exception handler
+            throw new RuntimeException(ex);
+        }
     }
 
     @Override

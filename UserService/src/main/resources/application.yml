@@ -16,7 +16,7 @@ spring:
 
 
     config:
-      import: configserver:http://localhost:8085
+      import: optional:configserver:http://localhost:8085
 
 #actuator Config
 
@@ -49,3 +49,37 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 3
         sliding-window-size: 10
         sliding-window-type: count_based
+
+#Retry Config
+
+  retry:
+    instances:
+      ratingHotelRetry:
+        max-attempts: 3
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        wait-duration:
+          seconds: 2
+        retry-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - java.lang.IllegalStateException
+
+        ignore-exceptions:
+          - com.user.service.UserService.Exceptions.ResourceNotFoundException
+          - org.springframework.web.client.HttpClientErrorException
+
+
+  ratelimiter:
+    instances:
+      userRateLimiter:
+        limit-refresh-period: 4s
+        limit-for-period: 2
+        timeout-duration: 0s
+
+
+logging:
+  level:
+    io.github.resilience4j.retry: DEBUG
