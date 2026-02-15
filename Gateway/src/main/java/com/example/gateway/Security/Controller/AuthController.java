@@ -1,8 +1,9 @@
 package com.example.gateway.Security.Controller;
 
-import com.spring.fooddelivery.domain.Security.AuthService;
-import com.spring.fooddelivery.domain.Security.Logindto.LoginRequestDto;
-import com.spring.fooddelivery.domain.Security.Logindto.LoginResponseDto;
+
+import com.example.gateway.Security.AuthService;
+import com.example.gateway.Security.Logindto.LoginRequestDto;
+import com.example.gateway.Security.Logindto.LoginResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
