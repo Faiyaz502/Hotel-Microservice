@@ -61,7 +61,7 @@ To ensure high availability and reliability:
 ## 🛠️ Tech Stack
 
 ### Backend
-- Java 17
+- Java 21
 - Spring Boot
 - Spring Security
 - Spring Cloud (Gateway, Eureka, Config)
