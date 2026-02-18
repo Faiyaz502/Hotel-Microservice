@@ -17,6 +17,11 @@ spring:
           predicates:
             - Path=/ratings, /ratings/**
 
+        - id: AUTHSERVICE
+          uri: lb://AUTHSERVICE
+          predicates:
+            - Path=/login, /login/**, /api/users ,/api/users/**
+
   security:
     oauth2:
       resourceserver:

@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.Spring</groupId>
-    <artifactId>AuthService</artifactId>
+    <artifactId>Auth</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>AuthService</name>
+    <name>Auth</name>
     <description>AuthService</description>
     <url/>
     <licenses>
