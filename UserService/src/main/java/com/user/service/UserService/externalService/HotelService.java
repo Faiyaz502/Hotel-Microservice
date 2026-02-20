@@ -1,12 +1,13 @@
 package com.user.service.UserService.externalService;
 
+import com.user.service.UserService.Interceptor.FeignConfig;
 import com.user.service.UserService.entities.Hotel;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "HOTELSERVICE")
+@FeignClient(name = "HOTELSERVICE",configuration = FeignConfig.class)
 public interface HotelService {
 
     @GetMapping("/hotels/{hotelId}")

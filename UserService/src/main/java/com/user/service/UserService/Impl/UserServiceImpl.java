@@ -71,12 +71,16 @@ public class UserServiceImpl implements UserService {
 
         ///  Fetch rating from Rating service
 
-        //==== http://localhost:8083/ratings/users/3277b3b6-4af9-480c-b2e1-64883eb737bf example call in postman
+
+
+            //==== http://localhost:8083/ratings/users/3277b3b6-4af9-480c-b2e1-64883eb737bf example call in postman
+
+        log.info("------------Rating Service MicroService Calling ");
 
 
         Ratings[] ratingsArr = restTemplate.getForObject("http://RATINGSERVICE/ratings/users/"+user.getUserId(), Ratings[].class);
 
-       log.info(ratingsArr.toString());
+       log.info("Rating MicroService Response {} ->",ratingsArr.toString());
 
 
 
@@ -88,12 +92,16 @@ public class UserServiceImpl implements UserService {
 
             //Fetch the hotels from the hotel service api
 
+            log.info("------------Hotel MicroService Calling ");
+
             ResponseEntity<Hotel> res = restTemplate.getForEntity("http://HOTELSERVICE/hotels/"+ratings1.getHotelId(), Hotel.class);
 
              Hotel hotel = res.getBody();
 
 
              //With Feign Client
+
+
 
             //can get directly hotel to by changing in externalService
             ResponseEntity<Hotel> hotelRes = hotelService.getHotel(ratings1.getHotelId());

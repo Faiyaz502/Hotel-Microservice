@@ -8,6 +8,7 @@ spring:
             - Path=/users, /users/**
           filters:
             - AuthenticationFilter
+            - AddRequestHeader=X-INTERNAL-KEY, MY_SECRET_KEY
 
         - id: HOTELSERVICE
           uri: lb://HOTELSERVICE
@@ -15,6 +16,7 @@ spring:
             - Path=/hotels, /hotels/**,/staffs/**
           filters:
             - AuthenticationFilter
+            - AddRequestHeader=X-INTERNAL-KEY, MY_SECRET_KEY
 
         - id: RATINGSERVICE
           uri: lb://RATINGSERVICE
@@ -22,6 +24,7 @@ spring:
             - Path=/ratings, /ratings/**
           filters:
             - AuthenticationFilter
+            - AddRequestHeader=X-INTERNAL-KEY, MY_SECRET_KEY
 
         - id: AUTHSERVICE
           uri: lb://AUTHSERVICE
