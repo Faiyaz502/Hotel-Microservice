@@ -26,6 +26,49 @@ spring:
     config:
       import: optional:configserver:http://localhost:8085
 
+#Kafka
+
+
+    kafka:
+      # Kafka broker address
+      bootstrap-servers: localhost:9092
+
+      # Producer Configuration
+      producer:
+        # Serializer for message keys
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        # Serializer for message values
+        value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        # Acknowledgment mode (all = wait for all replicas)
+        acks: all
+        # Number of retries on failure
+        retries: 3
+        # Enable idempotence (prevent duplicate messages)
+        properties:
+          enable.idempotence: true
+          # Request timeout
+          request.timeout.ms: 30000
+          # Delivery timeout
+          delivery.timeout.ms: 120000
+          # Compression type (none, gzip, snappy, lz4, zstd)
+          compression.type: lz4
+          # Batch size in bytes
+          batch.size: 16384
+          # Linger time in ms (wait to batch messages)
+          linger.ms: 5
+          # Buffer memory
+          buffer.memory: 33554432
+
+      # Consumer Configuration (for later use)
+      consumer:
+        group-id: user-service-group
+        auto-offset-reset: earliest
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        properties:
+          spring.json.trusted.packages: "*"
+
+
 #actuator Config
 
 management:

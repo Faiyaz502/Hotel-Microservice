@@ -1,6 +1,7 @@
 package com.user.service.UserService.controller;
 
 import com.user.service.UserService.Exceptions.ResourceNotFoundException;
+import com.user.service.UserService.service.KafkaService;
 import com.user.service.UserService.service.UserService;
 import com.user.service.UserService.entities.User;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -29,10 +30,21 @@ public class UserController {
 
     private final UserService userService;
     private final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private final KafkaService kafkaService;
 
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user){
+
+        logger.info("Calling the Creating User /users Controller {} ->",user);
+
         User savedUser = userService.saveUser(user);
+
+
+        logger.info("Calling the Kafka Publisher for Email /users Controller {} ->",user);
+
+        kafkaService.userCreatedPublisher(savedUser);
+
+
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 

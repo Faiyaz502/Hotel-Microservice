@@ -11,5 +11,5 @@ spring:
     import: optional:configserver:http://localhost:8085
 
 server:
-  port: 9093
+  port: 9094
 

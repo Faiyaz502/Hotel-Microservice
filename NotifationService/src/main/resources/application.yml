@@ -1,0 +1,44 @@
+server:
+  port: 8989
+
+spring:
+  config:
+    import: optional:configserver:http://localhost:8085
+#KAFKA
+
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    consumer:
+      group-id: user-service-consumer-group
+      auto-offset-reset: earliest
+
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+        spring.json.trusted.packages: "com.example.NotifationService.payload"
+        spring.json.value.default.type: com.example.NotifationService.payload.UserCreatedEvent
+        spring.json.use.type.headers: false
+
+        session.timeout.ms: 30000
+        heartbeat.interval.ms: 10000
+        max.poll.records: 500
+        max.poll.interval.ms: 300000
+        fetch.min.bytes: 1
+        fetch.max.wait.ms: 500
+
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: www.faiyaz619@gmail.com
+    password: bjtv ckav pygm vzbs
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
