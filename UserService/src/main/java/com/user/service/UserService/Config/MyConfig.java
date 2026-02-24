@@ -47,13 +47,7 @@ public class MyConfig {
         return TopicBuilder.name("user-created").build();
     }
 
-    @Bean
-    CommandLineRunner testKafka(KafkaTemplate<String, String> kafkaTemplate) {
-        return args -> {
-            kafkaTemplate.send("user-created", "Hello Kafka!");
-            System.out.println("Sent test message");
-        };
-    }
+
 
 
 
