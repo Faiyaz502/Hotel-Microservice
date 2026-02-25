@@ -80,9 +80,6 @@ public class UserServiceImpl implements UserService {
         log.info("<<<Retry Value >>>  "+retryCount);
 
         ///  Fetch rating from Rating service
-
-
-
             //==== http://localhost:8083/ratings/users/3277b3b6-4af9-480c-b2e1-64883eb737bf example call in postman
 
         log.info("------------Rating Service MicroService Calling ");

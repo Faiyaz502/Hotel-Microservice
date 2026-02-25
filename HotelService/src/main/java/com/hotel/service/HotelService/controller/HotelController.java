@@ -3,6 +3,8 @@ package com.hotel.service.HotelService.controller;
 import com.hotel.service.HotelService.entities.Hotel;
 import com.hotel.service.HotelService.services.HotelService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
