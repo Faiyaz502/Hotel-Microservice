@@ -3,6 +3,7 @@ package com.hotel.service.HotelService.entities;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.*;
 
 @Getter
@@ -25,6 +26,8 @@ public class Hotel {
         private String contact ;
 
         private String about ;
+
+        private String avgRating;
 
 
 }

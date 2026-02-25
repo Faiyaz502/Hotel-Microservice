@@ -12,6 +12,10 @@ import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -39,6 +43,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
+    @CacheEvict(value = "users", allEntries = true)
     public User saveUser(User user) {
 
       String userID = UUID.randomUUID().toString();
@@ -49,7 +54,11 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
 
+
+    //Redis Caching
+
     @Override
+    @Cacheable(value = "users")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
@@ -58,6 +67,7 @@ public class UserServiceImpl implements UserService {
     int retryCount = 1 ;
 
     @Override
+    @Cacheable(value = "user", key = "#id")
     @Retry(name = "ratingHotelRetry" , fallbackMethod = "RetryFallbackForFetchingUserById")
     public User getUserById(String id) {
 
@@ -164,6 +174,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @CachePut(value = "user", key = "#id")
+    @CacheEvict(value = "users", allEntries = true)
     public User updateUser(String id, User userDetails) {
         //  Find existing user
         User existingUser = userRepository.findById(id)
@@ -180,6 +192,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "user", key = "#id"),
+            @CacheEvict(value = "users", allEntries = true)
+    })
     public String deleteUser(String userId) {
           try {
               userRepository.deleteById(userId);
