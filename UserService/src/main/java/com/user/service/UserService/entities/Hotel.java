@@ -1,5 +1,6 @@
 package com.user.service.UserService.entities;
 
+import com.user.service.UserService.Config.BaseEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -10,7 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Hotel {
+public class Hotel extends BaseEntity {
 
         @Id
         private String id ;

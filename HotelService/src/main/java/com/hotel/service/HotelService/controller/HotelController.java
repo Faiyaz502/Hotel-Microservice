@@ -51,8 +51,6 @@ public class HotelController {
     }
 
     //get All
-
-
     @GetMapping
     public ResponseEntity<List<Hotel>> getAllHotels(){
 

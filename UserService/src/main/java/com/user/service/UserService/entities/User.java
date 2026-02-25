@@ -1,5 +1,6 @@
 package com.user.service.UserService.entities;
 
+import com.user.service.UserService.Config.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class User {
+public class User extends BaseEntity {
 
     @Id
     @Column(name = "ID")

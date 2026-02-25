@@ -1,5 +1,6 @@
 package com.service.ratingService.RatingService.entities;
 
+import com.service.ratingService.RatingService.Config.BaseEntity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +13,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @NoArgsConstructor
 @Document("user_ratings")
-public class Ratings {
+public class Ratings extends BaseEntity {
 
     @Id
     private String ratingId;
