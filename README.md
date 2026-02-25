@@ -71,8 +71,5 @@ Built to handle the "Chaos" of distributed systems using **Resilience4j**:
 
 ---
 
-## 🚀 Getting Started
 
-1. **Clone the Repository**
-   ```bash
-   git clone [https://github.com/YourUsername/hotel-microservices.git](https://github.com/YourUsername/hotel-microservices.git)
+

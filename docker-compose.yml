@@ -19,8 +19,8 @@ services:
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
     volumes:
-      - kafka-data:/tmp/kraft-combined-logs  # ✅ Correct: name:path
+      - kafka-data:/tmp/kraft-combined-logs  
     restart: unless-stopped
 
 volumes:
-  kafka-data:  # ✅ Define the named volume here
+  kafka-data:  
