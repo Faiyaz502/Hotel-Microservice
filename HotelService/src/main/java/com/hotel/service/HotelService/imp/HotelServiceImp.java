@@ -5,6 +5,8 @@ import com.hotel.service.HotelService.Repositories.HotelRepo;
 import com.hotel.service.HotelService.entities.Hotel;
 import com.hotel.service.HotelService.services.HotelService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -17,6 +19,7 @@ import java.util.List;
 public class HotelServiceImp implements HotelService {
 
     private final HotelRepo hotelRepo;
+    private final Logger log = LoggerFactory.getLogger(HotelServiceImp.class);
 
     // Create-----
     @Override
@@ -30,13 +33,17 @@ public class HotelServiceImp implements HotelService {
     @Override
     @Cacheable(value = "hotels")
     public List<Hotel> getAllHotels() {
+
+        log.info("------Getting All Hotels from DB--------");
         return hotelRepo.findAll();
     }
 
     @Override
     @Cacheable(value = "hotel",key = "#hotelId")
-    public Hotel getHotelById(String id) {
-        return hotelRepo.findById(id).orElseThrow(()-> new ResourceNotFoundException("Hotel Not Found"));
+    public Hotel getHotelById(String hotelId) {
+
+        log.info("------Getting  Hotel from DB- ID : ->{}",hotelId);
+        return hotelRepo.findById(hotelId).orElseThrow(()-> new ResourceNotFoundException("Hotel Not Found"));
     }
 
 
@@ -45,6 +52,8 @@ public class HotelServiceImp implements HotelService {
     @CacheEvict(value = "hotels", allEntries = true)
     @CachePut(value = "hotel", key = "#id")
     public Hotel updateHotel(String id, Hotel hotel) {
+
+        log.info("------UPDATING Hotel ON DB : ID ------- ->{}",id);
 
         // -------- JPQL update
         int updatedRows = hotelRepo.updateHotelById(
@@ -55,9 +64,13 @@ public class HotelServiceImp implements HotelService {
                 hotel.getContact()
         );
 
+
+
         if (updatedRows == 0) {
             throw new ResourceNotFoundException("Hotel Not Found With Id: " + id);
         }
+
+        log.info("------UPDATED Hotel ON DB : ID ------- ->{}",id);
 
         // Manually construct the updated Hotel object for cache reduce extra DB hit---
         Hotel cachedHotel = new Hotel();
@@ -67,20 +80,23 @@ public class HotelServiceImp implements HotelService {
         cachedHotel.setAbout(hotel.getAbout());
         cachedHotel.setContact(hotel.getContact());
 
+
+        log.info("------UPDATING Hotel ON Redis Caching Layer : ID ------- ->{}",id);
+
         return cachedHotel; // this goes directly into @CachePut
     }
 
     // -----DELETE
     @Override
     @Caching(evict = {
-            @CacheEvict(value = "hotel", key = "#id"),
+            @CacheEvict(value = "hotel", key = "#hotelId"),
             @CacheEvict(value = "hotels", allEntries = true)
     })
-    public void deleteHotel(String id) {
-
-        Hotel hotel = hotelRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Hotel Not Found"));
-
-        hotelRepo.delete(hotel);
+    public void deleteHotel(String hotelId) {
+        int deletedCount = hotelRepo.deleteByIdIfNotNull(hotelId);
+        if (deletedCount == 0) {
+            // No hotel deleted, either null or invalid ID
+            throw new ResourceNotFoundException("Hotel not found or invalid ID");
+        }
     }
 }

@@ -1,11 +1,11 @@
 package com.hotel.service.HotelService.entities;
 
 import com.hotel.service.HotelService.Config.BaseEntity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
+import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -29,6 +29,9 @@ public class Hotel extends BaseEntity {
         private String about ;
 
         private String avgRating;
+
+    @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Staff> staffs = new ArrayList<>();
 
 
 }

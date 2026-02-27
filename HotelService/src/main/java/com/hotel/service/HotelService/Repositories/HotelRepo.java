@@ -5,6 +5,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 
@@ -23,6 +24,12 @@ public interface HotelRepo extends JpaRepository<Hotel,String> {
            WHERE h.id = :id
           \s""")
     int updateHotelById(String id, String name, String location, String about, String contact);
+
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Hotel h WHERE h.id = :hotelId AND :hotelId IS NOT NULL")
+    int deleteByIdIfNotNull(@Param("hotelId") String hotelId);
 
 
 }
