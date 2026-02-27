@@ -1,5 +1,8 @@
 package com.hotel.service.HotelService.services;
 
+import com.hotel.service.HotelService.Dto.HotelProjection;
+import com.hotel.service.HotelService.Dto.HotelSummaryDto;
+import com.hotel.service.HotelService.Dto.PaginatedResponse;
 import com.hotel.service.HotelService.entities.Hotel;
 
 import java.util.List;
@@ -10,6 +13,8 @@ public interface HotelService {
 
 
         List<Hotel> getAllHotels();
+
+    PaginatedResponse<HotelProjection> getHotelsPaginated(String name, String location, String lastId, int size);
 
 
 

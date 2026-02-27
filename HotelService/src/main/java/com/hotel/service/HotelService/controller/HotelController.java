@@ -1,5 +1,8 @@
 package com.hotel.service.HotelService.controller;
 
+import com.hotel.service.HotelService.Dto.HotelProjection;
+import com.hotel.service.HotelService.Dto.HotelSummaryDto;
+import com.hotel.service.HotelService.Dto.PaginatedResponse;
 import com.hotel.service.HotelService.entities.Hotel;
 import com.hotel.service.HotelService.services.HotelService;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -36,6 +38,21 @@ public class HotelController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdHotel);
     }
 
+    // GET ALL =================
+    @GetMapping
+    public ResponseEntity<PaginatedResponse<HotelProjection>> getAllHotels(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String lastId,
+            @RequestParam(defaultValue = "10") int size) {
+
+        log.info("GET : Search Hotels - name: {}, loc: {}", name, location);
+        return ResponseEntity.ok(hotelService.getHotelsPaginated(name, location, lastId, size));
+    }
+
+
+
+
     // GET SINGLE =================
     @GetMapping("/{hotelId}")
     public ResponseEntity<Hotel> getHotelById(@PathVariable String hotelId){
@@ -49,14 +66,7 @@ public class HotelController {
         return ResponseEntity.ok(hotel);
     }
 
-    // GET ALL =================
-    @GetMapping
-    public ResponseEntity<List<Hotel>> getAllHotels(){
 
-        log.info("GET : Getting ALLHotel /hotels Calling ID");
-
-        return ResponseEntity.ok(hotelService.getAllHotels());
-    }
 
     // UPDATE =================
     @PutMapping("/{hotelId}")

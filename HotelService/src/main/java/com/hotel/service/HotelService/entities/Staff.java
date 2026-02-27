@@ -10,7 +10,14 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "Staff")
+@Table(
+        name = "Staff",
+        indexes = {
+                @Index(name = "idx_staff_hotel_id", columnList = "hotel_id"),
+                @Index(name = "idx_staff_email", columnList = "email"),
+                @Index(name = "idx_staff_position_shift", columnList = "position, shift")
+        }
+)
 public class Staff extends BaseEntity {
 
     @Id

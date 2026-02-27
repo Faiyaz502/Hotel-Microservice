@@ -13,7 +13,11 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "Hotels")
+@Table(name = "Hotels", indexes = {
+        // ------ index covers both the Search (name) and the Cursor (id)
+        @Index(name = "idx_hotel_name_pagination", columnList = "name, id"),
+        @Index(name = "idx_hotel_location", columnList = "location")
+})
 public class Hotel extends BaseEntity {
 
         @Id
