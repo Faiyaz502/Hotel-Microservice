@@ -18,9 +18,9 @@ public interface HotelService {
 
 
 
-        Hotel getHotelById(String id);
+    HotelSummaryDto getHotelById(String id);
 
-    Hotel updateHotel(String id, Hotel hotel);
+    HotelSummaryDto updateHotel(String id, Hotel hotel);
 
     void deleteHotel(String id);
 

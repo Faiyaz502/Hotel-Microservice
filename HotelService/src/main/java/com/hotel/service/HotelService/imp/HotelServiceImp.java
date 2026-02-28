@@ -40,7 +40,7 @@ public class HotelServiceImp implements HotelService {
         return hotelRepo.save(hotel);
     }
 
-    // get All Hotels --------
+    // get All Hotels ---Testing perpose -----
     @Override
     @Cacheable(value = "hotels")
     public List<Hotel> getAllHotels() {
@@ -85,10 +85,14 @@ public class HotelServiceImp implements HotelService {
 
     @Override
     @Cacheable(value = "hotel",key = "#hotelId")
-    public Hotel getHotelById(String hotelId) {
+    public HotelSummaryDto getHotelById(String hotelId) {
 
         log.info("------Getting  Hotel from DB- ID : ->{}",hotelId);
-        return hotelRepo.findById(hotelId).orElseThrow(()-> new ResourceNotFoundException("Hotel Not Found"));
+
+        Hotel Hotel = hotelRepo.findById(hotelId).orElseThrow(()-> new ResourceNotFoundException("Hotel Not Found"));
+
+
+        return toHotelDto(Hotel);
     }
 
 
@@ -99,7 +103,7 @@ public class HotelServiceImp implements HotelService {
             @CacheEvict(value = "hotel_search", allEntries = true)
     })
     @CachePut(value = "hotel", key = "#id")
-    public Hotel updateHotel(String id, Hotel hotelDetails) {
+    public HotelSummaryDto updateHotel(String id, Hotel hotelDetails) {
         log.info("Updating Hotel ID: {}", id);
 
         //------ Get the existing full record
@@ -112,8 +116,10 @@ public class HotelServiceImp implements HotelService {
         if (hotelDetails.getAbout() != null) existingHotel.setAbout(hotelDetails.getAbout());
         if (hotelDetails.getContact() != null) existingHotel.setContact(hotelDetails.getContact());
 
+        Hotel Hotel = hotelRepo.save(existingHotel);
 
-        return hotelRepo.save(existingHotel);
+
+        return toHotelDto(Hotel);
     }
 
     // -----DELETE
@@ -130,4 +136,26 @@ public class HotelServiceImp implements HotelService {
             throw new ResourceNotFoundException("Hotel not found or invalid ID");
         }
     }
+
+
+
+    //Converting Dto-----------
+
+    private HotelSummaryDto toHotelDto(Hotel Hotel){
+
+
+        return HotelSummaryDto.builder()
+                .id(Hotel.getId())
+                .name(Hotel.getName())
+                .avgRating(Hotel.getAvgRating())
+                .location(Hotel.getLocation())
+                .about(Hotel.getAbout())
+                .contact(Hotel.getContact()).build();
+
+
+    }
+
+
+
+
 }

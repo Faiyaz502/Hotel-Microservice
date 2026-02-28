@@ -55,11 +55,11 @@ public class HotelController {
 
     // GET SINGLE =================
     @GetMapping("/{hotelId}")
-    public ResponseEntity<Hotel> getHotelById(@PathVariable String hotelId){
+    public ResponseEntity<HotelSummaryDto> getHotelById(@PathVariable String hotelId){
 
 
 
-        Hotel hotel = hotelService.getHotelById(hotelId);
+        HotelSummaryDto hotel = hotelService.getHotelById(hotelId);
 
         log.info("Getting Hotel /hotels/hotelId Calling Hotel :->{}",hotel);
 
@@ -70,12 +70,12 @@ public class HotelController {
 
     // UPDATE =================
     @PutMapping("/{hotelId}")
-    public ResponseEntity<Hotel> updateHotel(
+    public ResponseEntity<HotelSummaryDto> updateHotel(
             @PathVariable String hotelId,
             @RequestBody Hotel hotel){
         log.info("PUT : Hotel /hotels/hotelId Calling ID :->{}",hotelId);
 
-        Hotel updatedHotel = hotelService.updateHotel(hotelId, hotel);
+        HotelSummaryDto updatedHotel = hotelService.updateHotel(hotelId, hotel);
 
         log.info("PUT : Hotel /hotels/hotelId Calling ID :->{}",updatedHotel);
 
