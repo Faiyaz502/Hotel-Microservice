@@ -8,6 +8,8 @@ import com.service.ratingService.RatingService.Repositories.RatingRepo;
 import com.service.ratingService.RatingService.entities.Ratings;
 import com.service.ratingService.RatingService.service.RatingService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -20,6 +22,7 @@ import java.util.List;
 public class RatingServiceImpl implements RatingService {
 
     private final RatingRepo ratingRepo;
+    private final Logger log = LoggerFactory.getLogger(RatingServiceImpl.class);
 
 
     @Override
@@ -29,6 +32,8 @@ public class RatingServiceImpl implements RatingService {
             @CacheEvict(value = "hotelRatings", key = "#ratings.hotelId")
     })
     public Ratings create(Ratings ratings) {
+
+        log.info("Crating a rating of ->{}{}{} ",ratings.getUserId(),ratings.getHotelId(),ratings.getRating());
 
         return ratingRepo.save(ratings);
     }
@@ -41,28 +46,36 @@ public class RatingServiceImpl implements RatingService {
         return ratingRepo.findAll();
     }
 
-
+        /// Get All Ratings with optimized filter  , cursor and size
+        /// can Handle millions of data
     @Override
     @Cacheable(value = "ratings_search",
-            key = "{#hotelId, #minRating, #lastId, #lastRatingValue, #size}",
+            key = "{#hotelId, #userId, #minRating, #lastId, #lastRatingValue, #size}",
             unless = "#result.content.isEmpty()")
-    public PaginatedResponse<RatingProjection> getRatings(String hotelId, Integer minRating, String lastId, Integer lastRatingValue, int size) {
+    public PaginatedResponse<RatingProjection> getRatings(
+            String hotelId,
+            String userId,
+            Integer minRating,
+            String lastId,
+            Integer lastRatingValue,
+            int size) {
 
-        //--- Fetch projections (size + 1)
-        List<RatingProjection> projections = ratingRepo.findRatingsWithCursor(hotelId, minRating, lastId, lastRatingValue, size);
+        log.info("Calling getRatings with cursor ->{}{}{}{}{}{}",hotelId, userId, minRating, lastId, lastRatingValue, size);
+
+        // ----Pass userId to the repo
+        List<RatingProjection> projections = ratingRepo.findRatingsWithCursor(
+                hotelId, userId, minRating, lastId, lastRatingValue, size);
 
         String nextId = null;
         Integer nextRating = null;
         List<RatingProjection> resultList;
 
-        // --Logic to determine if there is a next page
+        //Avoid the extra count query to make the system fast :D
+
         if (projections.size() > size) {
-            // Peek at the last item of the current page (index size-1)
             RatingProjection peek = projections.get(size - 1);
             nextId = peek.getRatingId();
             nextRating = peek.getRating();
-
-            // Return exactly the requested amount
             resultList = projections.subList(0, size);
         } else {
             resultList = projections;
@@ -79,6 +92,8 @@ public class RatingServiceImpl implements RatingService {
     }
 
 
+
+    //For external Use the main api can handle it also
     @Override
     @Cacheable(value = "userRatings",key = "#userId")
     public List<Ratings> getRationsOfUser(String userId) {

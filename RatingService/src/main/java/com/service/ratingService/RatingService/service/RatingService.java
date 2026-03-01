@@ -16,7 +16,7 @@ public interface RatingService {
 
     //get All With Pagination
 
-    PaginatedResponse<RatingProjection>  getRatings(String hotelId, Integer minRating, String lastId, Integer lastRatingValue, int size);
+    PaginatedResponse<RatingProjection>  getRatings(String hotelId,  String userId, Integer minRating, String lastId, Integer lastRatingValue, int size);
 
     //Get stats
     HotelRatingStats getStats(String hotelId);

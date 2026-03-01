@@ -11,10 +11,13 @@ import java.util.List;
 
 
 public interface RatingRepo extends MongoRepository<Ratings, String>, CustomRatingRepo {
-    // Interface projection for simple list
+
+
+    //For Business logic implementation work
     List<Ratings> findByUserId(String userId);
 
     List<Ratings> findByHotelId(String hotelId);
-    List<RatingProjection> findAllProjectedBy(Pageable pageable);
+
+
 }
 

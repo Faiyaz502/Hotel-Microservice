@@ -7,6 +7,6 @@ import com.service.ratingService.RatingService.entities.Ratings;
 import java.util.List;
 
 public interface CustomRatingRepo {
-    List<RatingProjection> findRatingsWithCursor(String hotelId, Integer minRating, String lastId, Integer lastRatingValue, int size);
+    List<RatingProjection> findRatingsWithCursor(String hotelId,  String userId,   Integer minRating, String lastId, Integer lastRatingValue, int size);
     HotelRatingStats getHotelStats(String hotelId);
 }
