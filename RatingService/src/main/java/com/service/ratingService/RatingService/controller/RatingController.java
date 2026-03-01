@@ -1,5 +1,7 @@
 package com.service.ratingService.RatingService.controller;
 
+import com.service.ratingService.RatingService.Dto.PaginatedResponse;
+import com.service.ratingService.RatingService.Dto.RatingProjection;
 import com.service.ratingService.RatingService.entities.Ratings;
 import com.service.ratingService.RatingService.service.RatingService;
 import lombok.RequiredArgsConstructor;
@@ -26,12 +28,24 @@ public class RatingController {
 
     }
 
+//    @GetMapping
+//    public ResponseEntity<List<Ratings>> getAllRatings(){
+//
+//
+//        return ResponseEntity.status(HttpStatus.OK).body(ratingService.getAllRations());
+//
+//    }
+
+    //----- SEARCH & PAGINATED LIST----- (The Million-Row Optimized Endpoint) ------
     @GetMapping
-    public ResponseEntity<List<Ratings>> getAllRatings(){
+    public ResponseEntity<PaginatedResponse<RatingProjection>> getRatings(
+            @RequestParam(required = false) String hotelId,
+            @RequestParam(required = false) Integer minRating,
+            @RequestParam(required = false) String lastId,          // Cursor: ID
+            @RequestParam(required = false) Integer lastRatingValue, // Cursor: Rating value
+            @RequestParam(defaultValue = "10") int size) {
 
-
-        return ResponseEntity.status(HttpStatus.OK).body(ratingService.getAllRations());
-
+        return ResponseEntity.ok(ratingService.getRatings(hotelId, minRating, lastId, lastRatingValue, size));
     }
 
 

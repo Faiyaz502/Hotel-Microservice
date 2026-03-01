@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Getter
@@ -13,6 +14,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @NoArgsConstructor
 @Document("user_ratings")
+@CompoundIndex(name = "idx_hotel_rating_pagination", def = "{'hotelId': 1, 'rating': -1, '_id': 1}")
 public class Ratings extends BaseEntity {
 
     @Id

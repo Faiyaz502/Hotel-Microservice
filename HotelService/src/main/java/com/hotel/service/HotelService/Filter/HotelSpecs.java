@@ -13,7 +13,8 @@ public class HotelSpecs {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // SEARCH OPTIMIZATION: Use trailing wildcard only
+            // SEARCH OPTIMIZATION: Used trailing wildcard only
+
             if (name != null && !name.isBlank()) {
                 // query + "%" ensures the index is utilized
                 predicates.add(cb.like(cb.lower(root.get("name")), name.toLowerCase() + "%"));
