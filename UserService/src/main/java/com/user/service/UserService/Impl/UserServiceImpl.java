@@ -1,13 +1,14 @@
 package com.user.service.UserService.Impl;
 
 import com.user.service.UserService.Exceptions.ResourceNotFoundException;
+import com.user.service.UserService.Payload.PaginatedResponse;
+import com.user.service.UserService.Payload.UserProjection;
 import com.user.service.UserService.Repositories.UserRepository;
 import com.user.service.UserService.entities.Hotel;
 import com.user.service.UserService.entities.Ratings;
 import com.user.service.UserService.externalService.HotelService;
 import com.user.service.UserService.service.UserService;
 import com.user.service.UserService.entities.User;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -16,7 +17,10 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpServerErrorException;
@@ -24,12 +28,10 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -58,9 +60,37 @@ public class UserServiceImpl implements UserService {
     //Redis Caching
 
     @Override
-    @Cacheable(value = "users")
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    @Cacheable(value = "user_search",
+            key = "{#name, #userId, #phone, #email, #lastId, #size}",
+            unless = "#result.content.isEmpty()")
+    public PaginatedResponse<UserProjection> getAllUsers(
+            String name, String userId, String phone, String email, String lastId, int size) {
+
+        //---- Specification
+        Specification<User> spec = UserSpecification.build(name, userId, phone, email, lastId);
+
+        // ----- Pageable Size + 1 for nextPage
+
+
+        Pageable pageable = PageRequest.of(0, size + 1, Sort.by("userId").ascending());
+
+        //---- Fetch from Repository
+
+        List<UserProjection> projections = UserRepository.findAllProjectedBy(spec, pageable);
+
+        String nextCursor = null;
+        List<UserProjection> resultList;
+
+        // ---- if there is a next page
+        if (projections.size() > size) {
+
+            nextCursor = projections.get(size - 1).getUserId();
+            resultList = projections.subList(0, size);
+        } else {
+            resultList = projections;
+        }
+
+        return new PaginatedResponse<>(resultList, nextCursor);
     }
 
 

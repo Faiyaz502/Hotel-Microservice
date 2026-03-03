@@ -1,6 +1,8 @@
 package com.user.service.UserService.controller;
 
 import com.user.service.UserService.Exceptions.ResourceNotFoundException;
+import com.user.service.UserService.Payload.PaginatedResponse;
+import com.user.service.UserService.Payload.UserProjection;
 import com.user.service.UserService.service.KafkaService;
 import com.user.service.UserService.service.UserService;
 import com.user.service.UserService.entities.User;
@@ -11,6 +13,9 @@ import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -47,6 +52,23 @@ public class UserController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
+
+
+    @GetMapping
+    public ResponseEntity<PaginatedResponse<UserProjection>> getUsers(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String lastId,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(userService.getAllUsers(name, userId, phone, email, lastId, size));
+    }
+
+
+
+
 
     //---------Circuit Breaker
 
@@ -127,11 +149,6 @@ public class UserController {
 
 
 
-    @GetMapping
-    public ResponseEntity<List<User>> getAllUsers(){
-        List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
-    }
 
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User user){
