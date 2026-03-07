@@ -23,6 +23,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 @Service
 @RequiredArgsConstructor
@@ -53,38 +54,58 @@ public class HotelServiceImp implements HotelService {
 
 
     @Override
-    @Cacheable(value = "hotel_search",
+    @Cacheable(
+            value = "hotel_search",
             key = "{#name, #location, #lastId, #size}",
-            unless = "#result.content.isEmpty()")
-    public PaginatedResponse<HotelResponse> getHotelsPaginated(String name, String location, String lastId, int size) {
+            unless = "#result.content.isEmpty()"
+    )
+    public PaginatedResponse<HotelResponse> getHotelsPaginated(
+            String name,
+            String location,
+            String lastId,
+            int size
+    ) {
+        //--- Ensure size is reasonable to prevent Memory/DDoS issues
+        int fetchSize = Math.min(size, 100);
 
         Specification<Hotel> spec = HotelSpecs.getSpec(name, location, lastId);
 
-
+        //---Fetch using Fluent API - Efficient Index Seek
         List<HotelProjection> projections = hotelRepo.findBy(spec, q -> q
                 .as(HotelProjection.class)
                 .sortBy(Sort.by("id").ascending())
-                .limit(size + 1)
-                .all() // .all() returns a List, which prevents the count query
+                .limit(fetchSize + 1) // Fetch 1 extra to check for the next page
+                .all()
         );
 
-
-        List<HotelResponse> dtos = projections.stream()
-                .map(p -> new HotelResponse(p.getId(), p.getName(), p.getLocation(), p.getAvgRating()))
-                .toList();
-
-        String nextCursor = null;
-        List<HotelResponse> resultList;
-
-        if (dtos.size() > size) {
-            // The size-th element is our cursor for the NEXT request
-            nextCursor = dtos.get(size - 1).id();
-            resultList = new ArrayList<>(dtos.subList(0, size));
-        } else {
-            resultList = new ArrayList<>(dtos);
+        // --Handle Empty Results early
+        if (projections.isEmpty()) {
+            return new PaginatedResponse<>(Collections.emptyList(), null);
         }
 
-        return new PaginatedResponse<>(resultList, nextCursor);
+        // ---Map to Record - Use Streams for readability and immutability
+        List<HotelResponse> content = projections.stream()
+                .limit(fetchSize) // Don't include the extra "check" record in the result
+                .map(p -> new HotelResponse(
+                        p.getId(),
+                        p.getName(),
+                        p.getLocation(),
+                        p.getAvgRating()
+                ))
+                .toList();
+
+        //== Determine the Next Cursor
+        String nextCursor = null;
+        if (projections.size() > fetchSize) {
+            // The last item (index fetchSize) is the starting point for the next request
+            nextCursor = projections.get(fetchSize).getId();
+        }
+
+
+        log.info("Hotel Search: name={}, loc={}, results={}, hasNext={}",
+                name, location, content.size(), nextCursor != null);
+
+        return new PaginatedResponse<>(content, nextCursor);
     }
 
 
