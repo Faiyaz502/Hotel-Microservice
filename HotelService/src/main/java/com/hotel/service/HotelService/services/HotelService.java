@@ -1,6 +1,7 @@
 package com.hotel.service.HotelService.services;
 
 import com.hotel.service.HotelService.Dto.HotelProjection;
+import com.hotel.service.HotelService.Dto.HotelResponse;
 import com.hotel.service.HotelService.Dto.HotelSummaryDto;
 import com.hotel.service.HotelService.Dto.PaginatedResponse;
 import com.hotel.service.HotelService.entities.Hotel;
@@ -14,7 +15,7 @@ public interface HotelService {
 
         List<Hotel> getAllHotels();
 
-    PaginatedResponse<HotelProjection> getHotelsPaginated(String name, String location, String lastId, int size);
+    PaginatedResponse<HotelResponse> getHotelsPaginated(String name, String location, String lastId, int size);
 
 
 

@@ -76,7 +76,7 @@ public class UserServiceImpl implements UserService {
 
         //---- Fetch from Repository
 
-        List<UserProjection> projections = UserRepository.findAllProjectedBy(spec, pageable);
+        List<UserProjection> projections = userRepository.findAllProjectedBy(spec, pageable);
 
         String nextCursor = null;
         List<UserProjection> resultList;

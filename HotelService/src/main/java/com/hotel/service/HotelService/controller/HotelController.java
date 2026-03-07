@@ -1,6 +1,7 @@
 package com.hotel.service.HotelService.controller;
 
 import com.hotel.service.HotelService.Dto.HotelProjection;
+import com.hotel.service.HotelService.Dto.HotelResponse;
 import com.hotel.service.HotelService.Dto.HotelSummaryDto;
 import com.hotel.service.HotelService.Dto.PaginatedResponse;
 import com.hotel.service.HotelService.entities.Hotel;
@@ -40,7 +41,7 @@ public class HotelController {
 
     // GET ALL =================
     @GetMapping
-    public ResponseEntity<PaginatedResponse<HotelProjection>> getAllHotels(
+    public ResponseEntity<PaginatedResponse<HotelResponse>> getAllHotels(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String lastId,

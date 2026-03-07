@@ -5,7 +5,7 @@ spring:
         - id: USERSERVICE
           uri: lb://USERSERVICE
           predicates:
-            - Path=/users, /users/**
+            - Path=api/v1/users, api/v1/users/**
           filters:
             - AuthenticationFilter
             - AddRequestHeader=X-INTERNAL-KEY, MY_SECRET_KEY

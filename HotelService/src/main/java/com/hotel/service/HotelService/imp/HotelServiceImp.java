@@ -1,6 +1,7 @@
 package com.hotel.service.HotelService.imp;
 
 import com.hotel.service.HotelService.Dto.HotelProjection;
+import com.hotel.service.HotelService.Dto.HotelResponse;
 import com.hotel.service.HotelService.Dto.HotelSummaryDto;
 import com.hotel.service.HotelService.Dto.PaginatedResponse;
 import com.hotel.service.HotelService.Exceptions.ResourceNotFoundException;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 @Service
 @RequiredArgsConstructor
@@ -54,33 +56,36 @@ public class HotelServiceImp implements HotelService {
     @Cacheable(value = "hotel_search",
             key = "{#name, #location, #lastId, #size}",
             unless = "#result.content.isEmpty()")
-    public PaginatedResponse<HotelProjection> getHotelsPaginated(String name, String location, String lastId, int size) {
+    public PaginatedResponse<HotelResponse> getHotelsPaginated(String name, String location, String lastId, int size) {
 
         Specification<Hotel> spec = HotelSpecs.getSpec(name, location, lastId);
 
-        //   (size + 1) for next page check
-        Pageable pageable = PageRequest.of(0, size + 1, Sort.by("id").ascending());
+        // FIX: Use .limit() instead of .page() to kill 'offset' and 'count'
+        List<HotelProjection> projections = hotelRepo.findBy(spec, q -> q
+                .as(HotelProjection.class)
+                .sortBy(Sort.by("id").ascending())
+                .limit(size + 1)
+                .all() // .all() returns a List, which prevents the count query
+        );
 
-        // Fetch the list -> size + 1
-        List<HotelProjection> projections = hotelRepo.findAllProjectedBy(spec, pageable);
+        // Map to Record immediately to fix the Redis "Proxy" Serialization error
+        List<HotelResponse> dtos = projections.stream()
+                .map(p -> new HotelResponse(p.getId(), p.getName(), p.getLocation(), p.getAvgRating()))
+                .toList();
 
         String nextCursor = null;
-        List<HotelProjection> resultList;
+        List<HotelResponse> resultList;
 
-        // Logic to determine if there is a next page
-        if (projections.size() > size) {
-            // We found the "peek" record! There is a next page.
-            nextCursor = projections.get(size - 1).getId();
-            // Remove the extra (size + 1) record so the user only gets exactly what they asked for
-            resultList = projections.subList(0, size);
+        if (dtos.size() > size) {
+            // The size-th element is our cursor for the NEXT request
+            nextCursor = dtos.get(size - 1).id();
+            resultList = new ArrayList<>(dtos.subList(0, size));
         } else {
-            // No extra record found, this is the last page
-            resultList = projections;
+            resultList = new ArrayList<>(dtos);
         }
 
         return new PaginatedResponse<>(resultList, nextCursor);
     }
-
 
 
     @Override

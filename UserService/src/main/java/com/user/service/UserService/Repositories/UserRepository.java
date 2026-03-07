@@ -14,6 +14,6 @@ import java.util.List;
 public interface UserRepository extends JpaRepository<User,String> , JpaSpecificationExecutor<User> {
 
 
-    static List<UserProjection> findAllProjectedBy(Specification<User> spec, Pageable pageable);
+    List<UserProjection> findAllProjectedBy(Specification<User> spec, Pageable pageable);
 
 }

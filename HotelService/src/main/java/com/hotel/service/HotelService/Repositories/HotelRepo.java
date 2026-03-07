@@ -3,6 +3,7 @@ package com.hotel.service.HotelService.Repositories;
 import com.hotel.service.HotelService.Dto.HotelProjection;
 import com.hotel.service.HotelService.entities.Hotel;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,7 +28,8 @@ public interface HotelRepo extends JpaRepository<Hotel,String>, JpaSpecification
     int deleteByIdIfNotNull(@Param("hotelId") String hotelId);
 
 
-    List<HotelProjection> findAllProjectedBy(Specification<Hotel> spec, Pageable pageable);
+
+
 
 
 }
