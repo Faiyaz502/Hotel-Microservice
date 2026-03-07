@@ -60,7 +60,7 @@ public class HotelServiceImp implements HotelService {
 
         Specification<Hotel> spec = HotelSpecs.getSpec(name, location, lastId);
 
-        // FIX: Use .limit() instead of .page() to kill 'offset' and 'count'
+
         List<HotelProjection> projections = hotelRepo.findBy(spec, q -> q
                 .as(HotelProjection.class)
                 .sortBy(Sort.by("id").ascending())
@@ -68,7 +68,7 @@ public class HotelServiceImp implements HotelService {
                 .all() // .all() returns a List, which prevents the count query
         );
 
-        // Map to Record immediately to fix the Redis "Proxy" Serialization error
+
         List<HotelResponse> dtos = projections.stream()
                 .map(p -> new HotelResponse(p.getId(), p.getName(), p.getLocation(), p.getAvgRating()))
                 .toList();
