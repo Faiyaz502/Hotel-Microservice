@@ -2,6 +2,7 @@ package com.user.service.UserService.service;
 
 import com.user.service.UserService.Payload.PaginatedResponse;
 import com.user.service.UserService.Payload.UserProjection;
+import com.user.service.UserService.Payload.UserResponse;
 import com.user.service.UserService.entities.User;
 import org.springframework.data.domain.Pageable;
 
@@ -11,7 +12,7 @@ public interface UserService {
 
     User saveUser(User user);
 
-    PaginatedResponse<UserProjection> getAllUsers(
+    PaginatedResponse<UserResponse> getAllUsers(
             String name, String userId, String phone, String email, String lastId, int size);
 
     User getUserById(String id);

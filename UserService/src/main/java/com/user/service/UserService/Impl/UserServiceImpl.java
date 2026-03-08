@@ -3,6 +3,7 @@ package com.user.service.UserService.Impl;
 import com.user.service.UserService.Exceptions.ResourceNotFoundException;
 import com.user.service.UserService.Payload.PaginatedResponse;
 import com.user.service.UserService.Payload.UserProjection;
+import com.user.service.UserService.Payload.UserResponse;
 import com.user.service.UserService.Repositories.UserRepository;
 import com.user.service.UserService.entities.Hotel;
 import com.user.service.UserService.entities.Ratings;
@@ -28,10 +29,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 
 @Service
@@ -63,34 +61,54 @@ public class UserServiceImpl implements UserService {
     @Cacheable(value = "user_search",
             key = "{#name, #userId, #phone, #email, #lastId, #size}",
             unless = "#result.content.isEmpty()")
-    public PaginatedResponse<UserProjection> getAllUsers(
+    public PaginatedResponse<UserResponse> getAllUsers(
             String name, String userId, String phone, String email, String lastId, int size) {
 
         //---- Specification
         Specification<User> spec = UserSpecification.build(name, userId, phone, email, lastId);
 
-        // ----- Pageable Size + 1 for nextPage
+        // ----- Ensuring the size limit
 
+        int fetchSize = Math.min(size,100);
 
-        Pageable pageable = PageRequest.of(0, size + 1, Sort.by("userId").ascending());
 
         //---- Fetch from Repository
 
-        List<UserProjection> projections = userRepository.findAllProjectedBy(spec, pageable);
+        List<UserProjection> projections = userRepository.findBy(spec,q-> q
+                .as(UserProjection.class)
+                .sortBy(Sort.by("userId").ascending())
+                .limit(fetchSize+1)
+                .all());
 
-        String nextCursor = null;
-        List<UserProjection> resultList;
-
-        // ---- if there is a next page
-        if (projections.size() > size) {
-
-            nextCursor = projections.get(size - 1).getUserId();
-            resultList = projections.subList(0, size);
-        } else {
-            resultList = projections;
+        // --Handle Empty Results early
+        if (projections.isEmpty()) {
+            return new PaginatedResponse<>(Collections.emptyList(), null);
         }
 
-        return new PaginatedResponse<>(resultList, nextCursor);
+
+
+        List<UserResponse> responses = projections.stream()
+                .limit(fetchSize)
+                .map(this::toResponse).toList();
+
+
+
+        String nextCursor = null;
+
+
+        //== Determine the Next Cursor
+
+        if (projections.size() > fetchSize) {
+            // The last item (index fetchSize) is the starting point for the next request
+            nextCursor = projections.get(fetchSize).getUserId();
+
+        }
+
+
+        log.info("Hotel Search: name={}, email={}, results={}, hasNext={}",
+                name, email, responses.size(), nextCursor != null);
+
+        return new PaginatedResponse<>(responses, nextCursor);
     }
 
 
@@ -233,4 +251,20 @@ public class UserServiceImpl implements UserService {
 
         return "Successfully Deleted";
     }
+
+
+    private UserResponse toResponse(UserProjection projection){
+
+
+        return new UserResponse(
+                projection.getUserId(), projection.getName(), projection.getPhone(), projection.getEmail(),
+                projection.getAbout()
+        );
+
+    }
+
+
+
+
+
 }

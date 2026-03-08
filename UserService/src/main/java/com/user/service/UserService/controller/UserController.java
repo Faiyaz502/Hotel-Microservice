@@ -3,6 +3,7 @@ package com.user.service.UserService.controller;
 import com.user.service.UserService.Exceptions.ResourceNotFoundException;
 import com.user.service.UserService.Payload.PaginatedResponse;
 import com.user.service.UserService.Payload.UserProjection;
+import com.user.service.UserService.Payload.UserResponse;
 import com.user.service.UserService.service.KafkaService;
 import com.user.service.UserService.service.UserService;
 import com.user.service.UserService.entities.User;
@@ -55,7 +56,7 @@ public class UserController {
 
 
     @GetMapping
-    public ResponseEntity<PaginatedResponse<UserProjection>> getUsers(
+    public ResponseEntity<PaginatedResponse<UserResponse>> getUsers(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String userId,
             @RequestParam(required = false) String phone,

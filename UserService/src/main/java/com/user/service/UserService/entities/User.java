@@ -10,7 +10,7 @@ import java.util.List;
 @Entity
 @Table(name = "main_users",indexes = {
 
-        @Index(name = "idx_user_id",columnList = "userId"),
+        @Index(name = "idx_user_id",columnList = "user_id"),
         @Index(name = "idx_user_name",columnList = "name"),
         @Index(name = "idx_user_email",columnList = "email"),
         @Index(name = "idx_user_phone",columnList = "phone"),
@@ -24,7 +24,7 @@ import java.util.List;
 public class User extends BaseEntity {
 
     @Id
-    @Column(name = "ID")
+    @Column(name = "user_id")
     private String userId;
 
     @Column(length = 20)
