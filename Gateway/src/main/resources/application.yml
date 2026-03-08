@@ -13,7 +13,7 @@ spring:
         - id: HOTELSERVICE
           uri: lb://HOTELSERVICE
           predicates:
-            - Path=/hotels, /hotels/**,/staffs/**
+            - Path=/api/v1/hotels, /api/v1/hotels/**,/api/v1/staffs/**
           filters:
             - AuthenticationFilter
             - AddRequestHeader=X-INTERNAL-KEY, MY_SECRET_KEY
@@ -21,7 +21,7 @@ spring:
         - id: RATINGSERVICE
           uri: lb://RATINGSERVICE
           predicates:
-            - Path=/ratings, /ratings/**
+            - Path=/api/v1/ratings, /api/v1/ratings/**
           filters:
             - AuthenticationFilter
             - AddRequestHeader=X-INTERNAL-KEY, MY_SECRET_KEY

@@ -14,6 +14,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
+
+import java.util.Collections;
 import java.util.List;
 
 
@@ -46,43 +48,61 @@ public class RatingServiceImpl implements RatingService {
         return ratingRepo.findAll();
     }
 
+
+
+
         /// Get All Ratings with optimized filter  , cursor and size
         /// can Handle millions of data
-    @Override
-    @Cacheable(value = "ratings_search",
-            key = "{#hotelId, #userId, #minRating, #lastId, #lastRatingValue, #size}",
-            unless = "#result.content.isEmpty()")
-    public PaginatedResponse<RatingProjection> getRatings(
-            String hotelId,
-            String userId,
-            Integer minRating,
-            String lastId,
-            Integer lastRatingValue,
-            int size) {
+        @Override
+        @Cacheable(value = "ratings_search",
+                key = "{#hotelId, #userId, #minRating, #lastId, #lastRatingValue, #size}",
+                unless = "#result.content.isEmpty()")
+        public PaginatedResponse<RatingResponseDto> getRatings(
+                String hotelId,
+                String userId,
+                Integer minRating,
+                String lastId,
+                Integer lastRatingValue,
+                int size) {
 
-        log.info("Calling getRatings with cursor ->{}{}{}{}{}{}",hotelId, userId, minRating, lastId, lastRatingValue, size);
+            // ---- Limit the fetch size to prevent huge queries
+            int fetchSize = Math.min(size, 100);
 
-        // ----Pass userId to the repo
-        List<RatingProjection> projections = ratingRepo.findRatingsWithCursor(
-                hotelId, userId, minRating, lastId, lastRatingValue, size);
+            // ---- Fetch projections from repository
+            List<RatingProjection> projections = ratingRepo.findRatingsWithCursor(
+                    hotelId, userId, minRating, lastId, lastRatingValue, fetchSize + 1);
 
-        String nextId = null;
-        Integer nextRating = null;
-        List<RatingProjection> resultList;
+            // ---- Handle empty result early
+            if (projections.isEmpty()) {
+                return new PaginatedResponse<>(Collections.emptyList(), null, null);
+            }
 
-        //Avoid the extra count query to make the system fast :D
+            // ---- Map Projection -> DTO
+            List<RatingResponseDto> responses = projections.stream()
+                    .limit(fetchSize)
+                    .map(p -> new RatingResponseDto(
+                            p.ratingId(),
+                            p.userId(),
+                            p.hotelId(),
+                            p.rating(),
+                            p.feedback()
+                    ))
+                    .toList();
 
-        if (projections.size() > size) {
-            RatingProjection peek = projections.get(size - 1);
-            nextId = peek.getRatingId();
-            nextRating = peek.getRating();
-            resultList = projections.subList(0, size);
-        } else {
-            resultList = projections;
+            // ---- Determine the next cursor
+            String nextId = null;
+            Integer nextRating = null;
+            if (projections.size() > fetchSize) {
+                RatingProjection last = projections.get(fetchSize); // the extra one
+                nextId = last.ratingId();
+                nextRating = last.rating();
+            }
+
+            log.info("Ratings fetched: hotelId={}, userId={}, size={}, hasNext={}",
+                    hotelId, userId, responses.size(), nextId != null);
+
+            return new PaginatedResponse<>(responses, nextId, nextRating);
         }
-
-        return new PaginatedResponse<>(resultList, nextId, nextRating);
-    }
 
 
     @Override
@@ -101,7 +121,7 @@ public class RatingServiceImpl implements RatingService {
     }
 
     @Override
-    @Cacheable(value = "hotelRatings",key = "hotelId")
+    @Cacheable(value = "hotelRatings",key = "#hotelId")
     public List<Ratings> getRationOfHotel(String hotelId) {
         return ratingRepo.findByHotelId(hotelId);
     }

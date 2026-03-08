@@ -3,6 +3,7 @@ package com.service.ratingService.RatingService.controller;
 import com.service.ratingService.RatingService.Dto.HotelRatingStats;
 import com.service.ratingService.RatingService.Dto.PaginatedResponse;
 import com.service.ratingService.RatingService.Dto.RatingProjection;
+import com.service.ratingService.RatingService.Dto.RatingResponseDto;
 import com.service.ratingService.RatingService.entities.Ratings;
 import com.service.ratingService.RatingService.service.RatingService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("ratings")
+@RequestMapping("api/v1/ratings")
 @RequiredArgsConstructor
 public class RatingController {
 
@@ -46,7 +47,7 @@ public class RatingController {
     //this one API can get ALL -- One Man Army
 
     @GetMapping
-    public ResponseEntity<PaginatedResponse<RatingProjection>> getRatings(
+    public ResponseEntity<PaginatedResponse<RatingResponseDto>> getRatings(
             @RequestParam(required = false) String hotelId,
             @RequestParam(required = false) String userId,
             @RequestParam(required = false) Integer minRating,
@@ -60,8 +61,10 @@ public class RatingController {
     }
 
 
-    public ResponseEntity<HotelRatingStats> getHotelStats(String hotelId){
+    @GetMapping("/stats/{hotelId}")
+    public ResponseEntity<HotelRatingStats> getHotelStats(@PathVariable String hotelId){
 
+        log.info("Calling the Stats of Hotel ID : ->{}",hotelId);
 
         return ResponseEntity.status(HttpStatus.OK).body(ratingService.getStats(hotelId));
 
