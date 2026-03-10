@@ -37,6 +37,11 @@ spring:
         jwt:
           jwk-set-uri: http://auth-service/.well-known/jwks.json
 
+
+  threads:
+    virtual:
+      enabled: true
+
 eureka:
   client:
     service-url:
@@ -76,3 +81,16 @@ resilience4j:
         ignore-exceptions:
           - java.lang.IllegalArgumentException
           - com.example.gateway.exception.InvalidTokenException
+
+   #Tracing
+management:
+  tracing:
+    sampling:
+      probability: 1.0  # 1.0 captures all requests; use 0.1 for production
+  zipkin:
+    tracing:
+      endpoint: "http://localhost:9411/api/v2/spans"
+# This allows you to see the TraceID in your Gateway logs
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

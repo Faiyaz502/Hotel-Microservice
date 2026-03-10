@@ -38,4 +38,7 @@ public class Hotel extends BaseEntity {
     private List<Staff> staffs = new ArrayList<>();
 
 
+    public Hotel(String id, String name, String location) {
+        super();
+    }
 }

@@ -61,6 +61,15 @@ public class RatingController {
     }
 
 
+    @GetMapping("/users/{id}")
+    public ResponseEntity<List<Ratings>> getRatingsById(@PathVariable String id){
+
+
+        return ResponseEntity.status(HttpStatus.OK).body(ratingService.getRationsOfUser(id));
+
+    }
+
+
     @GetMapping("/stats/{hotelId}")
     public ResponseEntity<HotelRatingStats> getHotelStats(@PathVariable String hotelId){
 

@@ -117,6 +117,8 @@ public class RatingServiceImpl implements RatingService {
     @Override
     @Cacheable(value = "userRatings",key = "#userId")
     public List<Ratings> getRationsOfUser(String userId) {
+
+
         return ratingRepo.findByUserId(userId);
     }
 

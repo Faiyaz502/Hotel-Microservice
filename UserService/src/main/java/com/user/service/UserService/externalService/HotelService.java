@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "HOTELSERVICE",configuration = FeignConfig.class)
 public interface HotelService {
 
-    @GetMapping("/hotels/{hotelId}")
+    @GetMapping("/api/v1/hotels/{hotelId}")
     ResponseEntity<Hotel> getHotel(@PathVariable String hotelId);
     //can call direct Hotel too;
 

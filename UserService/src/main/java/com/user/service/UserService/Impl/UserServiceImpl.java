@@ -133,7 +133,7 @@ public class UserServiceImpl implements UserService {
         log.info("------------Rating Service MicroService Calling ");
 
 
-        Ratings[] ratingsArr = restTemplate.getForObject("http://RATINGSERVICE/ratings/users/"+user.getUserId(), Ratings[].class);
+        Ratings[] ratingsArr = restTemplate.getForObject("http://RATINGSERVICE/api/v1/ratings/users/"+user.getUserId(), Ratings[].class);
 
        log.info("Rating MicroService Response {} ->",ratingsArr.toString());
 
@@ -149,7 +149,7 @@ public class UserServiceImpl implements UserService {
 
             log.info("------------Hotel MicroService Calling ");
 
-            ResponseEntity<Hotel> res = restTemplate.getForEntity("http://HOTELSERVICE/hotels/"+ratings1.getHotelId(), Hotel.class);
+            ResponseEntity<Hotel> res = restTemplate.getForEntity("http://HOTELSERVICE/api/v1/hotels/"+ratings1.getHotelId(), Hotel.class);
 
              Hotel hotel = res.getBody();
 
@@ -180,7 +180,7 @@ public class UserServiceImpl implements UserService {
 
 //            ratings1.setHotel(hotel);
 
-            ratings1.setHotel(hotelFeign);
+            ratings1.setHotel(hotel);
 
 
             return ratings1;

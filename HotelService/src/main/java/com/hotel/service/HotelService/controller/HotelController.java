@@ -62,6 +62,7 @@ public class HotelController {
 
         HotelSummaryDto hotel = hotelService.getHotelById(hotelId);
 
+
         log.info("Getting Hotel /hotels/hotelId Calling Hotel :->{}",hotel);
 
         return ResponseEntity.ok(hotel);

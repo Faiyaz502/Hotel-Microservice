@@ -115,10 +115,10 @@ public class HotelServiceImp implements HotelService {
 
         log.info("------Getting  Hotel from DB- ID : ->{}",hotelId);
 
-        Hotel Hotel = hotelRepo.findById(hotelId).orElseThrow(()-> new ResourceNotFoundException("Hotel Not Found"));
+            Hotel Hotel = hotelRepo.findById(hotelId).orElseThrow(()-> new ResourceNotFoundException("Hotel Not Found"));
+            return toHotelDto(Hotel);
 
 
-        return toHotelDto(Hotel);
     }
 
 
