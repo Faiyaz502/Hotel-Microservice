@@ -6,6 +6,8 @@ spring:
       uri: mongodb://localhost:27017
       database: Microservices-hotel
 
+
+
 #Importing data from the Config Server
   config:
     import: optional:configserver:http://localhost:8085
@@ -13,3 +15,16 @@ spring:
 server:
   port: 9094
 
+
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0  # Trace 100% of requests for debugging
+  zipkin:
+    tracing:
+      endpoint: "http://localhost:9411/api/v2/spans" # Default Zipkin path
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,tracing" # Ensure tracing endpoint is exposed

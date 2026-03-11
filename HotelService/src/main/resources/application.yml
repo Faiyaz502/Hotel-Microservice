@@ -20,6 +20,9 @@ management:
       exposure:
         include: health, info, prometheus
 
+
+
+
 #eureka: getting from Config Server
 #  instance:
 #    prefer-ip-address: true
