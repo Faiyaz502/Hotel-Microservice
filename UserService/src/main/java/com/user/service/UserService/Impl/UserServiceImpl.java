@@ -1,6 +1,7 @@
 package com.user.service.UserService.Impl;
 
 import com.user.service.UserService.Exceptions.ResourceNotFoundException;
+import com.user.service.UserService.Payload.HotelSummaryDto;
 import com.user.service.UserService.Payload.PaginatedResponse;
 import com.user.service.UserService.Payload.UserProjection;
 import com.user.service.UserService.Payload.UserResponse;
@@ -115,7 +116,7 @@ public class UserServiceImpl implements UserService {
     int retryCount = 1 ;
 
     @Override
-    @Cacheable(value = "user", key = "#id")
+//    @Cacheable(value = "user", key = "#id")
     @Retry(name = "ratingHotelRetry" , fallbackMethod = "RetryFallbackForFetchingUserById")
     public User getUserById(String id) {
 
@@ -141,50 +142,31 @@ public class UserServiceImpl implements UserService {
 
        List<Ratings> ratings = Arrays.stream(ratingsArr).toList();
 
-        ratings.stream().map(ratings1 -> {
+        ratings.forEach(rating -> {
+            try {
+                // Call using the correct DTO
+                ResponseEntity<HotelSummaryDto> hotelRes = hotelService.getHotel(rating.getHotelId());
+                HotelSummaryDto dto = hotelRes.getBody();
 
-            log.info("Hotel ID : --------"+ ratings1.getHotelId());
+                if (dto != null) {
+                    // Map DTO to Entity so you can set it in the Rating
+                    Hotel hotel = Hotel.builder()
+                            .id(dto.getId())
+                            .name(dto.getName())
+                            .location(dto.getLocation())
+                            .about(dto.getAbout())
+                            .contact(dto.getContact())
+                            .build();
 
-            //Fetch the hotels from the hotel service api
-
-            log.info("------------Hotel MicroService Calling ");
-
-            ResponseEntity<Hotel> res = restTemplate.getForEntity("http://HOTELSERVICE/api/v1/hotels/"+ratings1.getHotelId(), Hotel.class);
-
-             Hotel hotel = res.getBody();
-
-
-             //With Feign Client
-
-
-
-            //can get directly hotel to by changing in externalService
-            ResponseEntity<Hotel> hotelRes = hotelService.getHotel(ratings1.getHotelId());
-
-
-
-            Hotel hotelFeign = hotelRes.getBody();
-
-            log.info("------------- Feign Client : "+ hotelFeign.getName(),hotelFeign.getAbout(),hotelFeign.getLocation());
+                    rating.setHotel(hotel);
+                }
+            } catch (feign.FeignException.NotFound e) {
+                log.error("Hotel ID {} truly not found in HotelService", rating.getHotelId());
+            }
+        });
 
 
 
-
-
-             /// we can get status code and header if we call for entity
-            log.info(res.getBody().toString());
-             log.info(res.getStatusCode().toString());
-             log.info(res.getHeaders().toString());
-
-            //Set the hotel to rating
-
-//            ratings1.setHotel(hotel);
-
-            ratings1.setHotel(hotel);
-
-
-            return ratings1;
-        }).toList();
 
 
 
