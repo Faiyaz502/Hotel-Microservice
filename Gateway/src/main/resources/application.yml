@@ -82,7 +82,9 @@ resilience4j:
           - java.lang.IllegalArgumentException
           - com.example.gateway.exception.InvalidTokenException
 
-   #Tracing
+
+#Tracing
+
 management:
   tracing:
     sampling:

@@ -82,8 +82,16 @@
 
 
 
-        <!--Tracing the Call-->
 
+
+
+
+        <!--Tracing -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -93,11 +101,6 @@
         <dependency>
             <groupId>io.zipkin.reporter2</groupId>
             <artifactId>zipkin-reporter-brave</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-observation</artifactId>
         </dependency>
 
     </dependencies>

@@ -7,7 +7,6 @@ spring:
       database: Microservices-hotel
 
 
-
 #Importing data from the Config Server
   config:
     import: optional:configserver:http://localhost:8085
@@ -16,15 +15,20 @@ server:
   port: 9094
 
 
-
 management:
-  tracing:
-    sampling:
-      probability: 1.0  # Trace 100% of requests for debugging
-  zipkin:
-    tracing:
-      endpoint: "http://localhost:9411/api/v2/spans" # Default Zipkin path
   endpoints:
     web:
       exposure:
-        include: "health,info,tracing" # Ensure tracing endpoint is exposed
+        include: health, info, prometheus
+
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: "http://localhost:9411/api/v2/spans"
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
