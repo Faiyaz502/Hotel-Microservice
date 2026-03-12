@@ -116,7 +116,7 @@ public class UserServiceImpl implements UserService {
     int retryCount = 1 ;
 
     @Override
-//    @Cacheable(value = "user", key = "#id")
+    @Cacheable(value = "user", key = "#id")
     @Retry(name = "ratingHotelRetry" , fallbackMethod = "RetryFallbackForFetchingUserById")
     public User getUserById(String id) {
 

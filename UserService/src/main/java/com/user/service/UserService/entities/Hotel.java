@@ -6,12 +6,18 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.*;
 
+import java.io.Serial;
+import java.io.Serializable;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Hotel extends BaseEntity {
+public class Hotel implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
         @Id
         private String id ;
