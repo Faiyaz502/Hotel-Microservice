@@ -115,7 +115,7 @@ public class RatingServiceImpl implements RatingService {
 
     //For external Use the main api can handle it also
     @Override
-    @Cacheable(value = "userRatings",key = "#userId")
+//    @Cacheable(value = "userRatings",key = "#userId")
     public List<Ratings> getRationsOfUser(String userId) {
 
 

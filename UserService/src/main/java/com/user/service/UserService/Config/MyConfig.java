@@ -27,17 +27,27 @@ public class MyConfig {
 
 
 
+//    @Bean
+//    @LoadBalanced  // to use the service for calling
+//    public RestTemplate restTemplate(){
+//
+//        RestTemplate restTemplate = new RestTemplate();
+//
+//        List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
+//        interceptors.add(new InternalKeyInterceptor());
+//        restTemplate.setInterceptors(interceptors);
+//
+//        return restTemplate;
+//    }
+
+
     @Bean
-    @LoadBalanced  // to use the service for calling
-    public RestTemplate restTemplate(){
+    @LoadBalanced
+    public RestTemplate restTemplate(org.springframework.boot.web.client.RestTemplateBuilder builder) {
 
-        RestTemplate restTemplate = new RestTemplate();
-
-        List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
-        interceptors.add(new InternalKeyInterceptor());
-        restTemplate.setInterceptors(interceptors);
-
-        return restTemplate;
+        return builder
+                .additionalInterceptors(new InternalKeyInterceptor()) // Add your custom security key
+                .build(); // This returns a fully instrumented RestTemplate
     }
 
     //-------Kafka--------
