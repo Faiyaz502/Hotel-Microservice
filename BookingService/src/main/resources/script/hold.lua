@@ -1,0 +1,34 @@
+-- KEYS[1..N] = hold keys for each date
+-- ARGV[1..N] = available capacity for each date
+-- ARGV[N+1] = TTL in seconds
+-- ARGV[N+2] = idempotency key
+-- ARGV[N+3] = payment token
+
+local num_dates = #KEYS
+local ttl = tonumber(ARGV[num_dates + 1])
+local idemp_key = ARGV[num_dates + 2]
+local pay_token = ARGV[num_dates + 3]
+
+-- 1. Check idempotency
+local existing = redis.call("GET", idemp_key)
+if existing then return existing end
+
+-- 2. Validate availability
+for i = 1, num_dates do
+	local current_holds = tonumber(redis.call("GET", KEYS[i]) or "0")
+	local max_available = tonumber(ARGV[i])
+	if current_holds >= max_available then
+		return "SOLD_OUT"
+	end
+end
+
+-- 3. Atomically increment holds and set TTL
+for i = 1, num_dates do
+	redis.call("INCR", KEYS[i])
+	redis.call("EXPIRE", KEYS[i], ttl)
+end
+
+-- 4. Set idempotency key
+redis.call("SET", idemp_key, pay_token, "EX", ttl)
+
+return pay_token
