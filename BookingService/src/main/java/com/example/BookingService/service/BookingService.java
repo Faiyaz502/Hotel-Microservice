@@ -5,6 +5,7 @@ import com.example.BookingService.repository.InventoryRepo;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,7 @@ public class BookingService {
     private final DefaultRedisScript<String> holdRoomsScript;
 
     private static final int HOLD_TTL_SECONDS = 300; // 5-min payment window
-
+    private static final int MAX_OPTIMISTIC_RETRIES = 3;
     /**
      * Initiate Hold (Phase 1)
      */
@@ -79,25 +80,38 @@ public class BookingService {
     }
 
     /**
-     * Confirm Booking (Phase 2)
+     * Phase 2: Confirm Booking with Optimistic Lock Retry
      */
     @Transactional
     public void confirmBooking(String hotelId, String roomTypeId, List<LocalDate> stayDates) {
-        // Batch update DB with optimistic concurrency
-        int updated = inventoryRepo.batchConfirmOptimistic(hotelId, roomTypeId, stayDates);
-        if (updated != stayDates.size()) {
-            throw new RuntimeException("DB update mismatch. Expected " + stayDates.size() + " got " + updated);
-        }
 
-        // Decrement Redis holds
-        redisTemplate.executePipelined((org.springframework.data.redis.core.RedisCallback<Object>) connection -> {
-            for (LocalDate date : stayDates) {
-                String key = "hold:{" + hotelId + ":" + roomTypeId + "}:" + date;
-                connection.decr(key.getBytes());
+        int attempt = 0;
+        while (attempt < MAX_OPTIMISTIC_RETRIES) {
+            try {
+                // 1️⃣ Batch update DB
+                int updated = inventoryRepo.batchConfirmOptimistic(hotelId, roomTypeId, stayDates);
+                if (updated != stayDates.size()) {
+                    throw new RuntimeException("DB update mismatch: expected " + stayDates.size() + " but got " + updated);
+                }
+
+                // 2️⃣ Decrement Redis holds
+                redisTemplate.executePipelined((org.springframework.data.redis.core.RedisCallback<Object>) connection -> {
+                    for (LocalDate date : stayDates) {
+                        String key = "hold:{" + hotelId + ":" + roomTypeId + "}:" + date;
+                        connection.decr(key.getBytes());
+                    }
+                    return null;
+                });
+
+                log.info("Booking confirmed for room {} in hotel {} for dates {}", roomTypeId, hotelId, stayDates);
+                return; // Success
+            } catch (OptimisticLockingFailureException e) {
+                attempt++;
+                log.warn("Optimistic lock failure on confirmBooking attempt {} for {}-{}, retrying...", attempt, hotelId, roomTypeId);
+                if (attempt >= MAX_OPTIMISTIC_RETRIES) {
+                    throw new RuntimeException("Booking failed due to high concurrency. Please retry.");
+                }
             }
-            return null;
-        });
-
-        log.info("Booking confirmed for {} in hotel {}", roomTypeId, hotelId);
+        }
     }
 }

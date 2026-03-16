@@ -9,11 +9,11 @@ local ttl = tonumber(ARGV[num_dates + 1])
 local idemp_key = ARGV[num_dates + 2]
 local pay_token = ARGV[num_dates + 3]
 
--- 1. Check idempotency
+-- 1️⃣ Check idempotency
 local existing = redis.call("GET", idemp_key)
 if existing then return existing end
 
--- 2. Validate availability
+-- 2️⃣ Validate availability
 for i = 1, num_dates do
 	local current_holds = tonumber(redis.call("GET", KEYS[i]) or "0")
 	local max_available = tonumber(ARGV[i])
@@ -22,13 +22,14 @@ for i = 1, num_dates do
 	end
 end
 
--- 3. Atomically increment holds and set TTL
+-- 3️⃣ Atomically increment holds (only set EXPIRE if first hold)
 for i = 1, num_dates do
-	redis.call("INCR", KEYS[i])
-	redis.call("EXPIRE", KEYS[i], ttl)
+	local new_val = redis.call("INCR", KEYS[i])
+	if new_val == 1 then
+		redis.call("EXPIRE", KEYS[i], ttl)
+	end
 end
 
--- 4. Set idempotency key
+-- 4️⃣ Set idempotency key
 redis.call("SET", idemp_key, pay_token, "EX", ttl)
-
 return pay_token

@@ -2,7 +2,6 @@ package com.example.BookingService.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-
 import java.time.LocalDate;
 
 @Entity
@@ -11,6 +10,7 @@ import java.time.LocalDate;
 })
 @Data
 public class RoomInventory {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,5 +22,5 @@ public class RoomInventory {
     private int bookedCount;
 
     @Version
-    private Integer version; // Optimistic concurrency to prevent DB overbooking
+    private Integer version; // Optimistic concurrency
 }
