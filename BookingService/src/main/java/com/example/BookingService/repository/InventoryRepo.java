@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
 
-    // 1️⃣ Fetch inventory for multiple dates
+    //  Fetch inventory for multiple dates
     @Query("SELECT r.inventoryDate as inventoryDate, r.totalCapacity as totalCapacity, r.bookedCount as bookedCount " +
             "FROM RoomInventory r WHERE r.hotelId = :hotelId AND r.roomTypeId = :roomTypeId AND r.inventoryDate IN :dates")
     List<InventoryProjection> getInventoryBatchRaw(@Param("hotelId") String hotelId,
@@ -27,7 +27,7 @@ public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
                 .collect(Collectors.toMap(InventoryProjection::getInventoryDate, i -> i));
     }
 
-    // 2️⃣ Basic batch confirm (without optimistic lock)
+    // Basic batch confirm (without optimistic lock)
     @Modifying
     @Query("UPDATE RoomInventory r SET r.bookedCount = r.bookedCount + 1 " +
             "WHERE r.hotelId = :hotelId AND r.roomTypeId = :roomTypeId AND r.inventoryDate IN :dates")
@@ -35,7 +35,7 @@ public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
                      @Param("roomTypeId") String roomTypeId,
                      @Param("dates") List<LocalDate> dates);
 
-    // 3️⃣ Optimistic lock per date
+    //  Optimistic lock per date
     default int batchConfirmOptimistic(String hotelId, String roomTypeId, List<LocalDate> dates) {
         int updated = 0;
 
@@ -51,7 +51,7 @@ public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
         return updated;
     }
 
-    // 4️⃣ Check existence
+    //  Check existence
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
             "FROM RoomInventory r " +
             "WHERE r.hotelId = :hotelId AND r.roomTypeId = :roomTypeId AND r.inventoryDate = :date")
@@ -59,6 +59,14 @@ public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
                                             @Param("roomTypeId") String roomTypeId,
                                             @Param("date") LocalDate date);
 
-    // 5️⃣ Helper to load single row for optimistic lock
+    //  Helper to load single row for optimistic lock
     RoomInventory findByHotelIdAndRoomTypeIdAndInventoryDate(String hotelId, String roomTypeId, LocalDate date);
+
+    List<RoomInventory> findAllByInventoryDateBetween(LocalDate start, LocalDate end);
+
+    // Also add this to help the scheduler find specific hotel/room data if needed
+    List<RoomInventory> findAllByHotelIdAndRoomTypeIdAndInventoryDateBetween(
+            String hotelId, String roomTypeId, LocalDate start, LocalDate end);
+
+
 }

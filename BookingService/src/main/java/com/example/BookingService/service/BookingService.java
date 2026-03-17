@@ -2,13 +2,15 @@ package com.example.BookingService.service;
 
 import com.example.BookingService.projection.InventoryProjection;
 import com.example.BookingService.repository.InventoryRepo;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+
 
 import java.time.LocalDate;
 import java.util.List;
@@ -79,39 +81,60 @@ public class BookingService {
         }
     }
 
-    /**
-     * Phase 2: Confirm Booking with Optimistic Lock Retry
-     */
-    @Transactional
-    public void confirmBooking(String hotelId, String roomTypeId, List<LocalDate> stayDates) {
+    // --- Inside BookingService.java ---
 
+    /**
+     * Phase 2: Confirm Booking (External Wrapper)
+     * Handles the retry logic OUTSIDE the transaction.
+     */
+    public void confirmBooking(String hotelId, String roomTypeId, List<LocalDate> stayDates) {
         int attempt = 0;
         while (attempt < MAX_OPTIMISTIC_RETRIES) {
             try {
-                // 1️⃣ Batch update DB
-                int updated = inventoryRepo.batchConfirmOptimistic(hotelId, roomTypeId, stayDates);
-                if (updated != stayDates.size()) {
-                    throw new RuntimeException("DB update mismatch: expected " + stayDates.size() + " but got " + updated);
-                }
+                // Call the transactional method
+                performAtomicConfirmation(hotelId, roomTypeId, stayDates);
 
-                // 2️⃣ Decrement Redis holds
-                redisTemplate.executePipelined((org.springframework.data.redis.core.RedisCallback<Object>) connection -> {
-                    for (LocalDate date : stayDates) {
-                        String key = "hold:{" + hotelId + ":" + roomTypeId + "}:" + date;
-                        connection.decr(key.getBytes());
-                    }
-                    return null;
-                });
-
-                log.info("Booking confirmed for room {} in hotel {} for dates {}", roomTypeId, hotelId, stayDates);
-                return; // Success
+                return; // Success!
             } catch (OptimisticLockingFailureException e) {
                 attempt++;
-                log.warn("Optimistic lock failure on confirmBooking attempt {} for {}-{}, retrying...", attempt, hotelId, roomTypeId);
+                log.warn("Optimistic lock failure. Attempt {}/{} for {}-{}",
+                        attempt, MAX_OPTIMISTIC_RETRIES, hotelId, roomTypeId);
+
                 if (attempt >= MAX_OPTIMISTIC_RETRIES) {
-                    throw new RuntimeException("Booking failed due to high concurrency. Please retry.");
+                    throw new RuntimeException("High traffic detected. Please try confirming again.");
                 }
+
+                // Optional: Small backoff before retrying
+                try { Thread.sleep(50); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             }
+        }
+    }
+
+    /**
+     * The actual DB and Redis update.
+     * Marked as REQUIRES_NEW to ensure a fresh transaction for every retry.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void performAtomicConfirmation(String hotelId, String roomTypeId, List<LocalDate> stayDates) {
+        //  Update DB (The source of truth)
+        int updated = inventoryRepo.batchConfirmOptimistic(hotelId, roomTypeId, stayDates);
+
+        if (updated != stayDates.size()) {
+            throw new RuntimeException("DB update mismatch: expected " + stayDates.size() + " but got " + updated);
+        }
+
+        //  Decrement Redis holds
+        // If this fails, the DB is still committed, and Redis will expire in 5 mins anyway (Safety Net)
+        try {
+            redisTemplate.executePipelined((org.springframework.data.redis.core.RedisCallback<Object>) connection -> {
+                for (LocalDate date : stayDates) {
+                    String key = "hold:{" + hotelId + ":" + roomTypeId + "}:" + date;
+                    connection.decr(key.getBytes());
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            log.error("Redis decrement failed after DB commit. Hold will leak for 5 mins.", e);
         }
     }
 }
