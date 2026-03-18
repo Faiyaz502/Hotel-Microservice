@@ -1,5 +1,10 @@
 package com.example.BookingService.controller;
 
+import com.example.BookingService.Dto.BookingHoldRequest;
+import com.example.BookingService.Dto.BookingResponse;
+import com.example.BookingService.Dto.ConfirmBookingRequest;
+import com.example.BookingService.entity.Booking;
+import com.example.BookingService.scheduler.InventoryScheduler;
 import com.example.BookingService.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,20 +21,24 @@ public class BookingController {
 
     private final BookingService bookingService;
 
+
     /**
          Place a temporary hold on rooms.
      */
     @PostMapping("/hold")
     public ResponseEntity<String> initiateHold(
-            @RequestParam String hotelId,
-            @RequestParam String roomTypeId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
-            @RequestParam String userId,
+            @RequestBody BookingHoldRequest request,
             @RequestHeader("X-Idempotency-Key") String idempotencyKey) {
 
+
+
         String paymentToken = bookingService.initiateHold(
-                hotelId, roomTypeId, checkIn, checkOut, userId, idempotencyKey);
+                request.getHotelId(),
+                request.getRoomTypeId(),
+                request.getCheckIn(),
+                request.getCheckOut(),
+                request.getUserId(),
+                idempotencyKey);
 
         return ResponseEntity.ok(paymentToken);
     }
@@ -37,13 +46,34 @@ public class BookingController {
     /**
           Confirm the booking ( called by a Payment Service Webhook).
      */
+
     @PostMapping("/confirm")
-    public ResponseEntity<Void> confirmBooking(
+    public ResponseEntity<BookingResponse> confirmBooking(
             @RequestParam String hotelId,
             @RequestParam String roomTypeId,
-            @RequestBody List<LocalDate> stayDates) {
+            @RequestParam String token,
+            @RequestBody ConfirmBookingRequest request) {
 
-        bookingService.confirmBooking(hotelId, roomTypeId, stayDates);
-        return ResponseEntity.noContent().build();
+        Booking booking = bookingService.confirmBooking(
+                hotelId,
+                roomTypeId,
+                request.getStayDates(),
+                token,
+                request.getUserId(),
+                request.getTotalPrice(),
+                request.getPaymentId()
+        );
+
+        // Build response
+        BookingResponse response = new BookingResponse();
+        response.setBookingId(booking.getId());
+        response.setToken(booking.getToken());
+        response.setStatus(booking.getStatus());
+        response.setTotalPrice(booking.getTotalPrice());
+        response.setPaymentId(booking.getPaymentId());
+        response.setCheckIn(booking.getCheckIn());
+        response.setCheckOut(booking.getCheckOut());
+
+        return ResponseEntity.ok(response);
     }
 }

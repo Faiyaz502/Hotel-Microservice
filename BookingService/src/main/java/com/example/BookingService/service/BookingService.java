@@ -1,21 +1,22 @@
 package com.example.BookingService.service;
 
+import com.example.BookingService.entity.Booking;
 import com.example.BookingService.projection.InventoryProjection;
+import com.example.BookingService.repository.BookingRepo;
 import com.example.BookingService.repository.InventoryRepo;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-
+import java.time.Duration;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,11 +27,15 @@ public class BookingService {
     private final InventoryRepo inventoryRepo;
     private final RedisTemplate<String, String> redisTemplate;
     private final DefaultRedisScript<String> holdRoomsScript;
+    private final BookingRepo bookingRepo;
 
-    private static final int HOLD_TTL_SECONDS = 300; // 5-min payment window
+    private static final int HOLD_TTL_SECONDS = 300;
     private static final int MAX_OPTIMISTIC_RETRIES = 3;
+
     /**
-     * Initiate Hold (Phase 1)
+     * ===============================
+     * PHASE 1: INITIATE HOLD (TOKEN)
+     * ===============================
      */
     public String initiateHold(String hotelId,
                                String roomTypeId,
@@ -39,102 +44,146 @@ public class BookingService {
                                String userId,
                                String idempotencyKey) {
 
-        String idempKey = "idemp:hold:" + idempotencyKey;
-        List<LocalDate> stayDates = checkIn.datesUntil(checkOut).toList();
-        if (stayDates.isEmpty()) throw new IllegalArgumentException("Check-out must be after check-in");
 
-        // Batch fetch inventory from DB
-        Map<LocalDate, InventoryProjection> inventoryMap = inventoryRepo.getInventoryBatch(hotelId, roomTypeId, stayDates);
+        String idempKey = "idemp:hold:" + idempotencyKey;
+
+        List<LocalDate> stayDates = checkIn.datesUntil(checkOut).toList();
+
+        if (stayDates.isEmpty()) {
+            throw new IllegalArgumentException("Check-out must be after check-in");
+        }
+
+        //  Fetch inventory
+        Map<LocalDate, InventoryProjection> inventoryMap =
+                inventoryRepo.getInventoryBatch(hotelId, roomTypeId, stayDates);
 
         if (inventoryMap.size() < stayDates.size()) {
             throw new RuntimeException("Missing inventory for some dates");
         }
 
-        // Prepare Redis keys
+        //  Redis KEYS
         List<String> holdKeys = stayDates.stream()
                 .map(date -> "hold:{" + hotelId + ":" + roomTypeId + "}:" + date)
                 .toList();
 
-        // Prepare Lua arguments (capacity)
+        //  Redis ARGS (available capacity)
         List<String> args = stayDates.stream()
-                .map(date -> String.valueOf(inventoryMap.get(date).getTotalCapacity() - inventoryMap.get(date).getBookedCount()))
+                .map(date -> String.valueOf(
+                        inventoryMap.get(date).getTotalCapacity()
+                                - inventoryMap.get(date).getBookedCount()))
                 .collect(Collectors.toList());
 
-        // Add TTL, idempotency, token
+        // Generate TOKEN
         String paymentToken = "PAY_TK_" + UUID.randomUUID();
+        String tokenKey = "token:" + paymentToken;
+
         args.add(String.valueOf(HOLD_TTL_SECONDS));
         args.add(idempKey);
         args.add(paymentToken);
+        args.add(tokenKey);
 
-        // Execute Lua script atomically
+        //  Execute Lua
         try {
             String result = redisTemplate.execute(holdRoomsScript, holdKeys, args.toArray());
+
             if ("SOLD_OUT".equals(result)) {
-                log.warn("Booking failed: sold out for dates {}-{}", checkIn, checkOut);
                 throw new RuntimeException("One or more dates are sold out");
             }
-            log.info("Hold created for user {} token {}", userId, result);
+
+            log.info("Hold created → user={} token={}", userId, result);
             return result;
+
         } catch (Exception e) {
-            log.error("Redis failure during hold creation", e);
-            throw new RuntimeException("Temporary error, please retry later");
+            log.error("Redis failure during hold", e);
+            throw new RuntimeException("Temporary error, retry later");
         }
     }
 
-    // --- Inside BookingService.java ---
-
     /**
-     * Phase 2: Confirm Booking (External Wrapper)
-     * Handles the retry logic OUTSIDE the transaction.
+     * =======================================
+     * PHASE 2: CONFIRM BOOKING (WITH TOKEN)
+     * =======================================
      */
-    public void confirmBooking(String hotelId, String roomTypeId, List<LocalDate> stayDates) {
+    public Booking confirmBooking(String hotelId,
+                                  String roomTypeId,
+                                  List<LocalDate> stayDates,
+                                  String token,
+                                  String userId,
+                                  double totalPrice,
+                                  String paymentId) {
+
         int attempt = 0;
         while (attempt < MAX_OPTIMISTIC_RETRIES) {
             try {
-                // Call the transactional method
-                performAtomicConfirmation(hotelId, roomTypeId, stayDates);
-
-                return; // Success!
+                return performAtomicConfirmation(hotelId, roomTypeId, stayDates, token, userId, totalPrice, paymentId);
             } catch (OptimisticLockingFailureException e) {
                 attempt++;
-                log.warn("Optimistic lock failure. Attempt {}/{} for {}-{}",
-                        attempt, MAX_OPTIMISTIC_RETRIES, hotelId, roomTypeId);
-
-                if (attempt >= MAX_OPTIMISTIC_RETRIES) {
-                    throw new RuntimeException("High traffic detected. Please try confirming again.");
-                }
-
-                // Optional: Small backoff before retrying
+                log.warn("Retry {}/{} due to optimistic lock", attempt, MAX_OPTIMISTIC_RETRIES);
+                if (attempt >= MAX_OPTIMISTIC_RETRIES)
+                    throw new RuntimeException("High traffic, retry later");
                 try { Thread.sleep(50); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             }
         }
+
+        throw new RuntimeException("Failed to confirm booking after retries");
     }
 
     /**
-     * The actual DB and Redis update.
-     * Marked as REQUIRES_NEW to ensure a fresh transaction for every retry.
+     * ===========================================
+     * CORE CONFIRMATION (NO REDIS DECREMENT HERE)
+     * ===========================================
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void performAtomicConfirmation(String hotelId, String roomTypeId, List<LocalDate> stayDates) {
-        //  Update DB (The source of truth)
+    public Booking performAtomicConfirmation(String hotelId,
+                                             String roomTypeId,
+                                             List<LocalDate> stayDates,
+                                             String token,
+                                             String userId,
+                                             double totalPrice,
+                                             String paymentId) {
+
+        String tokenKey = "token:" + token;
+
+        // Prevent duplicate booking
+        Optional<Booking> existingBooking = bookingRepo.findByToken(token);
+        if (existingBooking.isPresent()) {
+            log.info("Booking already exists for token={}", token);
+            return existingBooking.get();
+        }
+
+        // Validate token in Redis
+        String tokenStatus = redisTemplate.opsForValue().get(tokenKey);
+        if (tokenStatus == null) throw new RuntimeException("Token expired or invalid");
+
+        // DB: Increment bookedCount atomically (optimistic lock)
         int updated = inventoryRepo.batchConfirmOptimistic(hotelId, roomTypeId, stayDates);
-
         if (updated != stayDates.size()) {
-            throw new RuntimeException("DB update mismatch: expected " + stayDates.size() + " but got " + updated);
+            throw new RuntimeException("Inventory update mismatch");
         }
 
-        //  Decrement Redis holds
-        // If this fails, the DB is still committed, and Redis will expire in 5 mins anyway (Safety Net)
-        try {
-            redisTemplate.executePipelined((org.springframework.data.redis.core.RedisCallback<Object>) connection -> {
-                for (LocalDate date : stayDates) {
-                    String key = "hold:{" + hotelId + ":" + roomTypeId + "}:" + date;
-                    connection.decr(key.getBytes());
-                }
-                return null;
-            });
-        } catch (Exception e) {
-            log.error("Redis decrement failed after DB commit. Hold will leak for 5 mins.", e);
-        }
+        // Save booking
+        Booking booking = new Booking();
+        booking.setUserId(userId);
+        booking.setHotelId(hotelId);
+        booking.setRoomTypeId(roomTypeId);
+        booking.setCheckIn(stayDates.get(0));
+        booking.setCheckOut(stayDates.get(stayDates.size() - 1)); // Correct checkOut
+        booking.setToken(token);
+        booking.setStatus("CONFIRMED");
+        booking.setTotalPrice(totalPrice);
+        booking.setPaymentId(paymentId);
+        booking.setCreatedAt(LocalDateTime.now());
+
+        bookingRepo.save(booking);
+
+        // Mark token as confirmed in Redis
+        redisTemplate.opsForValue().set(
+                tokenKey,
+                "CONFIRMED",
+                Duration.ofMinutes(10)
+        );
+
+        log.info("Booking confirmed → token={}, user={}", token, userId);
+        return booking;
     }
 }

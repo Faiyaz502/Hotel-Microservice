@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -19,26 +20,42 @@ public class RedisReconciliationScheduler {
     private final InventoryRepo inventoryRepo;
     private final RedisTemplate<String, String> redisTemplate;
 
-    // Runs every 30 minutes to ensure Redis isn't "drifting" too far from DB
-    @Scheduled(cron = "0 0/30 * * * *")
+    @Scheduled(cron = "0 0/5 * * * *") // Run every 5 minutes during rush
     public void syncRedisWithDB() {
-        log.info("Starting Redis-DB reconciliation...");
+        log.info("Executing High-Precision Redis Sync...");
 
-        // In a real system, you'd only do this for "hot" dates (next 30 days)
-        LocalDate start = LocalDate.now();
-        LocalDate end = start.plusDays(30);
-        List<LocalDate> dates = start.datesUntil(end).toList();
+        LocalDate today = LocalDate.now();
+        LocalDate end = today.plusDays(7); // Focus on the next 7 days (the "Rush" window)
 
-        // 1. Fetch all inventories for this window
-        // (Pseudocode: You'd likely batch this by Hotel/RoomType)
-        List<RoomInventory> activeInventories = inventoryRepo.findAllByInventoryDateBetween(start, end);
+        List<RoomInventory> activeInventories = inventoryRepo.findAllByInventoryDateBetween(today, end);
 
         for (RoomInventory inv : activeInventories) {
             String key = "hold:{" + inv.getHotelId() + ":" + inv.getRoomTypeId() + "}:" + inv.getInventoryDate();
 
-            // If there are no active holds in Redis, we don't need to do anything.
-            // But if there are, we can verify them against a 'live_holds' count if we tracked it.
-            // Simplest fix: If Redis value > 0 and it's been a while, we can reset or audit.
+            try {
+                Long ttl = redisTemplate.getExpire(key); // Get remaining TTL in seconds
+                String redisValStr = redisTemplate.opsForValue().get(key);
+                int redisVal = (redisValStr != null) ? Integer.parseInt(redisValStr) : 0;
+                int dbBooked = inv.getBookedCount();
+
+                // 🛡️ THE RUSH FIX:
+                // If TTL is > 290, a Lua script JUST incremented this.
+                // We skip this specific key to avoid "stealing" a live user's hold.
+                if (ttl != null && ttl > 290) {
+                    log.info("Skipping active hold for key: {}", key);
+                    continue;
+                }
+
+                if (redisVal != dbBooked) {
+                    // If the key is 'leaked' (Redis > DB) or 'missing' (Redis < DB)
+                    // and it's not a brand new hold, we force sync it.
+                    redisTemplate.opsForValue().set(key, String.valueOf(dbBooked), Duration.ofHours(24));
+                    log.warn("Rush Sync applied to {}: Redis {} -> DB {}", key, redisVal, dbBooked);
+                }
+
+            } catch (Exception e) {
+                log.error("Error syncing key {}", key, e);
+            }
         }
     }
 }
