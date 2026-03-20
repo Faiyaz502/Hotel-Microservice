@@ -1,5 +1,6 @@
 package com.hotel.service.HotelService.imp;
 
+import com.hotel.service.HotelService.Dto.RoomTypeExportDto;
 import com.hotel.service.HotelService.Repositories.HotelRepo;
 import com.hotel.service.HotelService.Repositories.RoomTypeRepo;
 import com.hotel.service.HotelService.entities.Hotel;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -18,30 +20,25 @@ public class RoomTypeService {
     private final RoomTypeRepo roomTypeRepo;
     private final HotelRepo hotelRepo;
 
-    /**
-     * Add a new room type to a hotel
-     */
-    @Transactional
-    public RoomType addRoomTypeToHotel(String hotelId, RoomType roomType) {
+    public RoomType addRoomType(String hotelId, RoomType roomType) {
         Hotel hotel = hotelRepo.findById(hotelId)
                 .orElseThrow(() -> new RuntimeException("Hotel not found"));
 
-        // Map hotel reference
         roomType.setHotel(hotel);
-
-        // Save room type
-        RoomType saved = roomTypeRepo.save(roomType);
-
-        // Add to hotel's list (optional, keeps the object graph in sync)
-        hotel.getRoomTypes().add(saved);
-
-        return saved;
+        // Ensure ID is generated if not provided
+        if (roomType.getId() == null) {
+            roomType.setId("RT-" + UUID.randomUUID().toString().substring(0, 8));
+        }
+        return roomTypeRepo.save(roomType);
     }
 
-    /**
-     * List all room types for a hotel
-     */
-    public List<RoomType> getRoomTypesForHotel(String hotelId) {
+    public List<RoomType> getRoomTypesByHotel(String hotelId) {
         return roomTypeRepo.findByHotelId(hotelId);
+    }
+
+    public List<RoomTypeExportDto> findAllMetadataProjected(){
+
+
+        return roomTypeRepo.findAllMetadataProjected();
     }
 }
