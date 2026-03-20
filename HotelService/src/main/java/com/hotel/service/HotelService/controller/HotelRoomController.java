@@ -31,7 +31,7 @@ public class HotelRoomController {
 
     @GetMapping("/all-room-metadata")
     public ResponseEntity<List<RoomTypeExportDto>> getAllMetadata() {
-        // 🚀 High-Performance Projection: Direct DB to DTO mapping
+        // High-Performance Projection: Direct DB to DTO mapping
         List<RoomTypeExportDto> dtos = roomTypeService.findAllMetadataProjected();
 
         return ResponseEntity.ok(dtos);

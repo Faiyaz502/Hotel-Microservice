@@ -1,5 +1,7 @@
 package com.example.BookingService.scheduler;
 
+import com.example.BookingService.Client.HotelClient;
+import com.example.BookingService.Dto.RoomTypeExportDto;
 import com.example.BookingService.entity.RoomInventory;
 import com.example.BookingService.entity.RoomType;
 import com.example.BookingService.repository.InventoryRepo;
@@ -21,6 +23,7 @@ public class InventoryScheduler {
 
     private final RoomTypeRepo roomTypeRepo;
     private final InventoryRepo inventoryRepo;
+    private final HotelClient hotelClient;
 
     /**
      * Daily roll-forward inventory for exactly 1 year ahead.
@@ -57,4 +60,45 @@ public class InventoryScheduler {
             log.info("No new inventory rows needed for {}", targetDate);
         }
     }
+
+
+
+
+
+    @Scheduled(cron = "0 0 1 * * *")
+    @Transactional
+    public void syncAllInventory() {
+        log.info("Fetching all room metadata from Hotel Service...");
+
+        // 1. Get ALL data in ONE request
+        List<RoomTypeExportDto> hotelMetadata = hotelClient.fetchAllRoomMetadata();
+
+        LocalDate targetDate = LocalDate.now().plusDays(365);
+        List<RoomInventory> newRows = new ArrayList<>();
+
+        for (RoomTypeExportDto meta : hotelMetadata) {
+            // 2. Check if we already have inventory for this room on this date
+            boolean exists = inventoryRepo.existsByHotelAndRoomTypeAndDate(
+                    meta.getHotelId(), meta.getRoomTypeId(), targetDate);
+
+            if (!exists) {
+                newRows.add(RoomInventory.builder()
+                        .hotelId(meta.getHotelId())
+                        .roomTypeId(meta.getRoomTypeId())
+                        .inventoryDate(targetDate)
+                        .totalCapacity(meta.getDefaultCapacity())
+                        .bookedCount(0)
+                        .build());
+            }
+        }
+
+        if (!newRows.isEmpty()) {
+            inventoryRepo.saveAll(newRows);
+            log.info("Batch Sync Complete: Added {} new inventory rows.", newRows.size());
+        }
+    }
+
+
+
+
 }
