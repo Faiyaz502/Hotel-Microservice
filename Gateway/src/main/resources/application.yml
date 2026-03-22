@@ -31,9 +31,19 @@ spring:
           predicates:
             - Path=/login, /login/**, /api/users ,/api/users/**
 
+        - id: BOOKINGSERVICE
+          uri: lb://BOOKINGSERVICE
+          predicates:
+            - Path=/api/v1/bookings, /api/v1/bookings/**, /api/v1/admin ,/api/v1/admin/**
+          filters:
+            - AuthenticationFilter
+            - AddRequestHeader=X-INTERNAL-KEY, MY_SECRET_KEY
+
+
+
   security:
     oauth2:
-      resourceserver:
+      resource server:
         jwt:
           jwk-set-uri: http://auth-service/.well-known/jwks.json
 
