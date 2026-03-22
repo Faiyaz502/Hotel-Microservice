@@ -16,7 +16,9 @@ public class AdminController {
 
     @PostMapping("/sync-inventory")
     public ResponseEntity<String> forceSync() {
-        inventoryScheduler.rollForwardInventory();
+        inventoryScheduler.syncAllInventory();
         return ResponseEntity.ok("Inventory generation triggered for 1 year ahead.");
     }
+
+
 }

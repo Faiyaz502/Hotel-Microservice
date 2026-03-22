@@ -4,8 +4,11 @@ import com.example.BookingService.entity.Booking;
 import com.example.BookingService.projection.InventoryProjection;
 import com.example.BookingService.repository.BookingRepo;
 import com.example.BookingService.repository.InventoryRepo;
+import com.example.BookingService.scheduler.InventoryScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -20,7 +23,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class BookingService {
 
@@ -28,6 +30,7 @@ public class BookingService {
     private final RedisTemplate<String, String> redisTemplate;
     private final DefaultRedisScript<String> holdRoomsScript;
     private final BookingRepo bookingRepo;
+    private final Logger log = LoggerFactory.getLogger(BookingService.class);
 
     private static final int HOLD_TTL_SECONDS = 300;
     private static final int MAX_OPTIMISTIC_RETRIES = 3;
