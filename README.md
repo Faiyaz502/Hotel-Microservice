@@ -1,5 +1,5 @@
 # 🏨 Hotel Microservices Ecosystem
-> **A High-Performance, Event-Driven Distributed System built with Java 21 & Spring Boot 3/4.**
+> **A High-Performance, Event-Driven Distributed System built with Java 21 & Spring Boot 3.**
 
 [![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=java)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4_/_4.0-brightgreen?style=flat-square&logo=spring)](https://spring.io/projects/spring-boot)
