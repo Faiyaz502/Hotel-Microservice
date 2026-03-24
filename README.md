@@ -69,11 +69,7 @@ Built to handle the "Chaos" of distributed systems:
 
 ---
 
-## ⚙️ Setup & Installation
-1. **Clone the Repo:** `git clone https://github.com/yourusername/hotel-management-microservices.git`
-2. **Infrastructure:** Run `docker-compose up -d` to start Kafka, Zookeeper, Redis, and all Databases.
-3. **Config & Eureka:** Start the `Config-Service` and `Discovery-Service` first.
-4. **Services:** Run the `Gateway` followed by the individual domain microservices.
+
 
 ```bash
 mvn spring-boot:run
