@@ -1,18 +1,28 @@
 package com.example.BookingService.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.Data;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
-@Table(name = "room_types")
-@Data
+@Table(name = "room_types", indexes = {
+        @Index(name = "idx_roomtype_hotel", columnList = "hotel_id")
+})
+@Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class RoomType {
+
     @Id
-    private String id;          // Room type ID
-    private String hotelId;     // Links to your Hotel Microservice/Table
+    private String id;          // Unique Room Type ID (e.g., "RT-DELUXE-123")
+
+    @Column(name = "hotel_id", nullable = false)
+    private String hotelId;     // Reference to the Hotel Service ID
+
     private String name;        // e.g., "Executive Suite"
-    private double basePrice;   // Price per night
-    private int defaultCapacity; // Default capacity for this room type
+
+    private double basePrice;
+
+    private int defaultCapacity;
 }

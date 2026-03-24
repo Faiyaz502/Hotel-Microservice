@@ -17,7 +17,7 @@ public interface RoomTypeRepo extends JpaRepository<RoomType, String> {
 
 
     @Query("SELECT new com.hotel.service.HotelService.Dto.RoomTypeExportDto(" +
-            "rt.id, rt.hotel.id, rt.name, rt.defaultCapacity) " +
+            "rt.id, rt.hotel.id, rt.name,rt.basePrice, rt.defaultCapacity) " +
             "FROM RoomType rt")
     List<RoomTypeExportDto> findAllMetadataProjected();
 

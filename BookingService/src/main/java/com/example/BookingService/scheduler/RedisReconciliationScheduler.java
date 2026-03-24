@@ -30,7 +30,7 @@ public class RedisReconciliationScheduler {
         List<RoomInventory> activeInventories = inventoryRepo.findAllByInventoryDateBetween(today, end);
 
         for (RoomInventory inv : activeInventories) {
-            String key = "hold:{" + inv.getHotelId() + ":" + inv.getRoomTypeId() + "}:" + inv.getInventoryDate();
+            String key = "hold:{" + inv.getHotelId() + ":" + inv.getRoomType().getId() + "}:" + inv.getInventoryDate();
 
             try {
                 Long ttl = redisTemplate.getExpire(key); // Get remaining TTL in seconds
