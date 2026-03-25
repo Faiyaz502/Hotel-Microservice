@@ -13,4 +13,5 @@ public class RoomTypeExportDto {
     private String roomName;
     private double basePrice;
     private int defaultCapacity;
+
 }
