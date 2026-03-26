@@ -97,6 +97,7 @@ public class InventoryScheduler {
         List<RoomInventory> inventoryToSave = new ArrayList<>();
 
         //  Map for safe reference (NO DB hit / NO errors)
+        //Storing to use it later in Inventory sync down here
         Map<String, RoomType> roomTypeMap = new HashMap<>();
 
         for (RoomTypeExportDto meta : hotelMetadata) {
@@ -105,6 +106,7 @@ public class InventoryScheduler {
             String hotelId = meta.getHotelId();
 
             // Handle RoomType creation
+            //Ignore in Local Fetch
             if (isRemote && !existingRoomTypeIds.contains(roomTypeId)) {
 
                 RoomType room = RoomType.builder()
@@ -147,7 +149,7 @@ public class InventoryScheduler {
         //  Batch save
         if (!roomsToSave.isEmpty()) {
             roomTypeRepo.saveAll(roomsToSave);
-            roomTypeRepo.flush();
+            roomTypeRepo.flush(); // query executed not commited
             log.info("Saved {} RoomTypes", roomsToSave.size());
         }
 
