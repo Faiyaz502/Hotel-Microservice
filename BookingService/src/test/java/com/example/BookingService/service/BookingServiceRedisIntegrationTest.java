@@ -88,11 +88,18 @@ class BookingServiceIntegrationTest {
         String uniqueKey = "idm-" + UUID.randomUUID();
 
         // Assert exception
-        Exception exception = assertThrows(Exception.class, () ->
+        RuntimeException exception = assertThrows(RuntimeException .class, () ->
                 bookingService.initiateHold(hotelId, roomTypeId, checkIn, checkOut, userId, uniqueKey)
         );
 
+
+
+
+
+
         assertTrue(exception.getMessage().contains("sold"));
+
+        System.out.println("No Room Available for Booking : " + exception.getMessage());
     }
 
     @BeforeEach

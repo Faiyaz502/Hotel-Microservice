@@ -1,6 +1,7 @@
 package com.example.BookingService.service;
 
 import com.example.BookingService.entity.Booking;
+import com.example.BookingService.exception.RoomSoldOutException;
 import com.example.BookingService.projection.InventoryProjection;
 import com.example.BookingService.repository.BookingRepo;
 import com.example.BookingService.repository.InventoryRepo;
@@ -90,15 +91,19 @@ public class BookingService {
             String result = redisTemplate.execute(holdRoomsScript, holdKeys, args.toArray());
 
             if ("SOLD_OUT".equals(result)) {
-                throw new RuntimeException("One or more dates are sold out");
+                throw new RoomSoldOutException("One or more dates are sold out");
             }
 
             log.info("Hold created → user={} token={}", userId, result);
             return result;
 
+        } catch (RoomSoldOutException e) {
+            // Rethrow business exceptions so they aren't caught by the general 'Exception' block
+            throw e;
         } catch (Exception e) {
-            log.error("Redis failure during hold", e);
-            throw new RuntimeException("Temporary error, retry later");
+            // This catches Redis connection issues, script syntax errors, etc.
+            log.error("Redis infrastructure failure", e);
+            throw new RuntimeException("Temporary system error, please retry");
         }
     }
 
