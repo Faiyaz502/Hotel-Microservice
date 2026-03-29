@@ -73,18 +73,18 @@ public class InventoryScheduler {
 
         LocalDate targetDate = LocalDate.now().plusDays(365);
 
-        //  Collect IDs
+        // 1. Collect IDs
         List<String> allRoomTypeIds = hotelMetadata.stream()
                 .map(RoomTypeExportDto::getRoomTypeId)
                 .distinct()
                 .toList();
 
-        //  Fetch existing RoomTypes
-        Set<String> existingRoomTypeIds = new HashSet<>(
+        // 2. Fetch truly existing IDs from DB
+        Set<String> existingRoomTypeIdsInDb = new HashSet<>(
                 roomTypeRepo.findExistingRoomTypeIds(allRoomTypeIds)
         );
 
-        //  Fetch existing Inventory
+        // 3. Fetch existing Inventory keys to avoid duplicates
         List<InventoryKeyProjection> existingInventory =
                 inventoryRepo.findExistingInventoryKeys(allRoomTypeIds, targetDate);
 
@@ -92,23 +92,18 @@ public class InventoryScheduler {
                 .map(e -> Pair.of(e.getHotelId(), e.getRoomTypeId()))
                 .collect(Collectors.toSet());
 
-        //  Prepare batch
         List<RoomType> roomsToSave = new ArrayList<>();
         List<RoomInventory> inventoryToSave = new ArrayList<>();
-
-        //  Map for safe reference (NO DB hit / NO errors)
-        //Storing to use it later in Inventory sync down here
         Map<String, RoomType> roomTypeMap = new HashMap<>();
 
         for (RoomTypeExportDto meta : hotelMetadata) {
-
             String roomTypeId = meta.getRoomTypeId();
             String hotelId = meta.getHotelId();
 
-            // Handle RoomType creation
-            //Ignore in Local Fetch
-            if (isRemote && !existingRoomTypeIds.contains(roomTypeId)) {
+            // Check if we need to create the RoomType locally
+            boolean existsInDb = existingRoomTypeIdsInDb.contains(roomTypeId);
 
+            if (isRemote && !existsInDb && !roomTypeMap.containsKey(roomTypeId)) {
                 RoomType room = RoomType.builder()
                         .id(roomTypeId)
                         .hotelId(hotelId)
@@ -119,19 +114,18 @@ public class InventoryScheduler {
 
                 roomsToSave.add(room);
                 roomTypeMap.put(roomTypeId, room);
-                existingRoomTypeIds.add(roomTypeId);
             }
 
-            // Inventory check
+            // Inventory logic
             Pair<String, String> key = Pair.of(hotelId, roomTypeId);
 
-            if (!existingInventoryKeys.contains(key)) {
+            // CRITICAL FIX: Only create inventory if the room exists in DB OR is being saved now
+            if (!existingInventoryKeys.contains(key) && (existsInDb || roomTypeMap.containsKey(roomTypeId))) {
 
-                // SAFE reference resolution
-                RoomType room = roomTypeMap.getOrDefault(
-                        roomTypeId,
-                        roomTypeRepo.getReferenceById(roomTypeId)
-                );
+                // Get the object: either the one we just built, or a safe proxy for one that exists
+                RoomType room = roomTypeMap.containsKey(roomTypeId)
+                        ? roomTypeMap.get(roomTypeId)
+                        : roomTypeRepo.getReferenceById(roomTypeId);
 
                 RoomInventory inventory = RoomInventory.builder()
                         .hotelId(hotelId)
@@ -143,13 +137,15 @@ public class InventoryScheduler {
 
                 inventoryToSave.add(inventory);
                 existingInventoryKeys.add(key);
+            } else if (!existsInDb && !roomTypeMap.containsKey(roomTypeId)) {
+                log.warn("Skipping inventory for Room ID {} because it does not exist in local DB and couldn't be synced.", roomTypeId);
             }
         }
 
-        //  Batch save
+        // 4. Batch save (RoomTypes MUST be flushed first so Inventory can point to them)
         if (!roomsToSave.isEmpty()) {
             roomTypeRepo.saveAll(roomsToSave);
-            roomTypeRepo.flush(); // query executed not commited
+            roomTypeRepo.flush();
             log.info("Saved {} RoomTypes", roomsToSave.size());
         }
 

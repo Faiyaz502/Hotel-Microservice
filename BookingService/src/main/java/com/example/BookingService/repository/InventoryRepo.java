@@ -3,13 +3,13 @@ package com.example.BookingService.repository;
 import com.example.BookingService.entity.RoomInventory;
 import com.example.BookingService.projection.InventoryKeyProjection;
 import com.example.BookingService.projection.InventoryProjection;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
@@ -22,8 +22,12 @@ public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
                                                    @Param("dates") List<LocalDate> dates);
 
     default Map<LocalDate, InventoryProjection> getInventoryBatch(String hotelId, String roomTypeId, List<LocalDate> dates) {
-        return getInventoryBatchRaw(hotelId, roomTypeId, dates)
-                .stream()
+        if (dates == null || dates.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<InventoryProjection> results = getInventoryBatchRaw(hotelId, roomTypeId, dates);
+        System.out.println("DB returned {} records for {} dates" +" "+ results.size() +" "+ dates.size()); // Debug log
+        return results.stream()
                 .collect(Collectors.toMap(InventoryProjection::getInventoryDate, i -> i));
     }
 
@@ -52,6 +56,18 @@ public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
     boolean existsByHotelAndRoomTypeAndDate(@Param("hotelId") String hotelId,
                                             @Param("roomTypeId") String roomTypeId,
                                             @Param("date") LocalDate date);
+
+
+
+    @Query("""
+    SELECT CONCAT(i.hotelId, '_', i.roomType.id, '_', i.inventoryDate)
+    FROM RoomInventory i
+    WHERE i.inventoryDate BETWEEN :start AND :end
+""")
+    Set<String> findAllExistingKeys(
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
 
     //  Helper to load single row for optimistic lock
     RoomInventory findByHotelIdAndRoomTypeIdAndInventoryDate(String hotelId, String roomTypeId, LocalDate date);
