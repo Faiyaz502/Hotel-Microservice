@@ -68,7 +68,7 @@ public class InventoryGapScheduler {
         LocalDate start = LocalDate.now();
         LocalDate end = start.plusMonths(2);
 
-        // 1. Fetch all existing record keys in ONE query (Bulk Key Strategy)
+        //  Fetch all existing record keys in ONE query (Bulk Key Strategy)
         Set<String> existingKeys = inventoryRepo.findAllExistingKeys(start, end);
 
         List<RoomInventory> buffer = new ArrayList<>();

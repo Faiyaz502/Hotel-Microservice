@@ -45,7 +45,7 @@ class BookingServiceIntegrationTest {
     @MockitoBean
     private InventoryRepo inventoryRepo;
 
-    // REAL DATA FROM PREVIOUS STEP
+
     private final String hotelId = "9a1f15c2-f9b4-4912-9d72-2fe5d5369825";
     private final String roomTypeId = "5ee19c87-a682-43a3-bcd9-325ea09946ba";
     private final LocalDate checkIn = LocalDate.of(2026, 3, 30);

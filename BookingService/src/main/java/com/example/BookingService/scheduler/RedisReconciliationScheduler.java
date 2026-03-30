@@ -38,7 +38,6 @@ public class RedisReconciliationScheduler {
                 int redisVal = (redisValStr != null) ? Integer.parseInt(redisValStr) : 0;
                 int dbBooked = inv.getBookedCount();
 
-                // 🛡️ THE RUSH FIX:
                 // If TTL is > 290, a Lua script JUST incremented this.
                 // We skip this specific key to avoid "stealing" a live user's hold.
                 if (ttl != null && ttl > 290) {

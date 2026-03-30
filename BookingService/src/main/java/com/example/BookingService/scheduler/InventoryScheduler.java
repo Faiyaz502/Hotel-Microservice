@@ -73,18 +73,18 @@ public class InventoryScheduler {
 
         LocalDate targetDate = LocalDate.now().plusDays(365);
 
-        // 1. Collect IDs
+        // Collect IDs
         List<String> allRoomTypeIds = hotelMetadata.stream()
                 .map(RoomTypeExportDto::getRoomTypeId)
                 .distinct()
                 .toList();
 
-        // 2. Fetch truly existing IDs from DB
+        // Fetch truly existing IDs from DB
         Set<String> existingRoomTypeIdsInDb = new HashSet<>(
                 roomTypeRepo.findExistingRoomTypeIds(allRoomTypeIds)
         );
 
-        // 3. Fetch existing Inventory keys to avoid duplicates
+        // Fetch existing Inventory keys to avoid duplicates
         List<InventoryKeyProjection> existingInventory =
                 inventoryRepo.findExistingInventoryKeys(allRoomTypeIds, targetDate);
 
@@ -142,7 +142,7 @@ public class InventoryScheduler {
             }
         }
 
-        // 4. Batch save (RoomTypes MUST be flushed first so Inventory can point to them)
+        // Batch save (RoomTypes MUST be flushed first so Inventory can point to them)
         if (!roomsToSave.isEmpty()) {
             roomTypeRepo.saveAll(roomsToSave);
             roomTypeRepo.flush();

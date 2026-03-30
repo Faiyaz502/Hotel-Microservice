@@ -8,8 +8,6 @@ import java.util.Optional;
 
 public interface BookingRepo extends JpaRepository<Booking, String> {
 
-    List<Booking> findByUserId(String userId);
-    List<Booking> findByHotelIdAndRoomTypeId(String hotelId, String roomTypeId);
 
     // New: check for existing token
     Optional<Booking> findByToken(String token);
