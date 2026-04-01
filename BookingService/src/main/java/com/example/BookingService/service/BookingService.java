@@ -2,6 +2,7 @@ package com.example.BookingService.service;
 
 import com.example.BookingService.entity.Booking;
 import com.example.BookingService.exception.RoomSoldOutException;
+import com.example.BookingService.kafkaService.KafkaProducerService;
 import com.example.BookingService.projection.InventoryProjection;
 import com.example.BookingService.repository.BookingRepo;
 import com.example.BookingService.repository.InventoryRepo;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ public class BookingService {
     private final RedisTemplate<String, String> redisTemplate;
     private final DefaultRedisScript<String> holdRoomsScript;
     private final BookingRepo bookingRepo;
+    private final KafkaProducerService kafkaProducerService;
     private final Logger log = LoggerFactory.getLogger(BookingService.class);
 
     private static final int HOLD_TTL_SECONDS = 300;
@@ -191,7 +194,30 @@ public class BookingService {
                 Duration.ofMinutes(10)
         );
 
+        //RELEASE REDIS HOLDS
+        // Now that the DB 'bookedCount' is incremented, we decrement the 'hold'
+        // count to avoid "double-counting" the room in our availability check.
+
+        releaseHoldCounts(hotelId, roomTypeId, stayDates);
+
+        kafkaProducerService.bookingCreatedPublisher(booking);
+
+
+
+
+
         log.info("Booking confirmed → token={}, user={}", token, userId);
         return booking;
+    }
+
+    private void releaseHoldCounts(String hotelId, String roomTypeId, List<LocalDate> stayDates) {
+        for (LocalDate date : stayDates) {
+            String key = "hold:{" + hotelId + ":" + roomTypeId + "}:" + date;
+            try {
+                redisTemplate.opsForValue().decrement(key);
+            } catch (Exception e) {
+                log.error("Failed to decrement hold for key: {}", key, e);
+            }
+        }
     }
 }
