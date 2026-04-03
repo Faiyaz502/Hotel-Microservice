@@ -21,10 +21,11 @@ public class KafkaProducerService {
         logger.info("Publishing booking event for bookingId: {}", booking.getId());
 
         String message = String.format(
-                "{\"bookingId\":\"%s\", \"userId\":\"%s\", \"hotelId\":\"%s\", \"status\":\"CREATED\"}",
+                "{\"bookingId\":\"%s\", \"userId\":\"%s\", \"hotelId\":\"%s\", \"status\":\"%s\"}",
                 booking.getId(),
                 booking.getUserId(),
-                booking.getHotelId()
+                booking.getHotelId(),
+                booking.getStatus()
         );
 
         logger.info("Sending message to Kafka topic 'booking-events': {}", message);
@@ -35,4 +36,6 @@ public class KafkaProducerService {
 
         return true;
     }
+
+
 }
