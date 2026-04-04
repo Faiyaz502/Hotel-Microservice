@@ -16,4 +16,5 @@ public class PaginatedResponse<T> implements Serializable {
 
     private List<T> content;
     private String nextCursor;
+    private Double nextScore;
 }

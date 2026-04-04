@@ -3,7 +3,6 @@ package com.example.BookingService.repository;
 import com.example.BookingService.entity.RoomInventory;
 import com.example.BookingService.projection.InventoryKeyProjection;
 import com.example.BookingService.projection.InventoryProjection;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,25 +36,28 @@ public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
     default int batchConfirmOptimistic(String hotelId, String roomTypeId, List<LocalDate> dates) {
         int updated = 0;
 
-        for (LocalDate date : dates) {
-            RoomInventory ri = findByHotelIdAndRoomTypeIdAndInventoryDate(hotelId, roomTypeId, date);
-            if (ri == null) throw new RuntimeException("Inventory missing for " + date);
+        String cleanHotelId = hotelId.trim();
+        String cleanRoomTypeId = roomTypeId.trim();
 
-            // Increment bookedCount, Hibernate will check @Version automatically
+        for (LocalDate date : dates) {
+
+
+
+            // Use .orElse(null) or .orElseThrow() to get the entity out of the Optional
+            RoomInventory ri = findByHotelIdAndRoomTypeIdAndInventoryDate(cleanHotelId, cleanRoomTypeId, date)
+                    .orElseThrow(() -> new RuntimeException("Inventory missing for " + date));
+
+            // Increment bookedCount
             ri.setBookedCount(ri.getBookedCount() + 1);
-            save(ri); // Will throw OptimisticLockException if version mismatch
+
+            // Save the updated entity
+            save(ri);
             updated++;
         }
         return updated;
     }
 
-    //  Check existence
-    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
-            "FROM RoomInventory r " +
-            "WHERE r.hotelId = :hotelId AND r.roomType.id = :roomTypeId AND r.inventoryDate = :date")
-    boolean existsByHotelAndRoomTypeAndDate(@Param("hotelId") String hotelId,
-                                            @Param("roomTypeId") String roomTypeId,
-                                            @Param("date") LocalDate date);
+
 
 
 
@@ -69,8 +71,16 @@ public interface InventoryRepo extends JpaRepository<RoomInventory, Long> {
             @Param("end") LocalDate end
     );
 
-    //  Helper to load single row for optimistic lock
-    RoomInventory findByHotelIdAndRoomTypeIdAndInventoryDate(String hotelId, String roomTypeId, LocalDate date);
+    @Query("""
+    SELECT r FROM RoomInventory r\s
+    WHERE r.hotelId = :hotelId\s
+    AND r.roomType.id = :roomTypeId\s
+    AND CAST(r.inventoryDate AS localdate) = :date
+""")
+    Optional<RoomInventory> findByHotelIdAndRoomTypeIdAndInventoryDate(
+            @Param("hotelId") String hotelId,
+            @Param("roomTypeId") String roomTypeId,
+            @Param("date") LocalDate date);
 
     List<RoomInventory> findAllByInventoryDateBetween(LocalDate start, LocalDate end);
 
