@@ -32,7 +32,7 @@ public class Hotel extends BaseEntity {
 
         private String about ;
 
-        private String avgRating;
+        private Double avgRating;
 
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Staff> staffs = new ArrayList<>();
