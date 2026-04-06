@@ -2,17 +2,61 @@ server:
   port: 8082
 
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/Microservice-hotel
-    driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: root
+  config:
+    import: "optional:configserver:http://localhost:8085"
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-  config:
-    import: optional:configserver:http://localhost:8085
+    # Important for CQRS: Ensure Hibernate doesn't try to manage the DataSource directly
+    open-in-view: false
+
+  # --- MULTI-DATASOURCE CONFIGURATION ---
+  datasource:
+    # PRIMARY (The Write Node)
+    primary:
+      jdbc-url: jdbc:postgresql://localhost:5432/Microservice-hotel
+      driver-class-name: org.postgresql.Driver
+      username: postgres
+      password: root
+      pool-name: Primary-Write-Pool
+
+    # REPLICA 1 (Read Node)
+    replica1:
+      jdbc-url: jdbc:postgresql://localhost:5433/Microservice-hotel-r1
+      driver-class-name: org.postgresql.Driver
+      username: postgres
+      password: root
+      pool-name: Replica-1-Pool
+
+    # REPLICA 2 (Read Node)
+    replica2:
+      jdbc-url: jdbc:postgresql://localhost:5434/Microservice-hotel-r2
+      driver-class-name: org.postgresql.Driver
+      username: postgres
+      password: root
+      pool-name: Replica-2-Pool
+
+    # REPLICA 3 (Read Node)
+    replica3:
+      jdbc-url: jdbc:postgresql://localhost:5435/Microservice-hotel-r3
+      driver-class-name: org.postgresql.Driver
+      username: postgres
+      password: root
+      pool-name: Replica-3-Pool
+
+  # --- ELASTICSEARCH CONFIGURATION ---
+  elasticsearch:
+    uris: http://localhost:9200
+    socket-timeout: 10s
+    connection-timeout: 5s
+
+  # --- REDIS CONFIGURATION ---
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 management:
   endpoints:
