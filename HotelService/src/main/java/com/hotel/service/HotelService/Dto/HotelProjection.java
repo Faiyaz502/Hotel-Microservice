@@ -8,5 +8,5 @@ public interface HotelProjection extends Serializable {
     String getId();
     String getName();
     String getLocation();
-    String getAvgRating();
+    Double getAvgRating();
 }

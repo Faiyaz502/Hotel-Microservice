@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -26,6 +27,9 @@ public interface HotelRepo extends JpaRepository<Hotel,String>, JpaSpecification
     @Transactional
     @Query("DELETE FROM Hotel h WHERE h.id = :hotelId AND :hotelId IS NOT NULL")
     int deleteByIdIfNotNull(@Param("hotelId") String hotelId);
+
+
+    List<Hotel> findByUpdatedAtAfter(LocalDateTime updatedAt);
 
 
 

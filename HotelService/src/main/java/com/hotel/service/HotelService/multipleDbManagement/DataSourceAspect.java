@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Aspect
 @Component
-@Order(0) // Very Important: Must run BEFORE @Transactional
+@Order(0)       //---- Must run BEFORE @Transactional
 public class DataSourceAspect {
 
     @Around("@annotation(com.hotel.service.HotelService.multipleDbManagement.ReadOnly)")

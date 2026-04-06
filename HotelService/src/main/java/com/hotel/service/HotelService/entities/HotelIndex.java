@@ -10,17 +10,18 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 @AllArgsConstructor @NoArgsConstructor
 @Document(indexName = "hotels")
 public class HotelIndex {
+
     @Id
     private String id;
 
-    @Field(type = FieldType.Text, analyzer = "standard", copyTo = "name_suggest")
+    @Field(type = FieldType.Text, analyzer = "standard")
     private String name;
 
-    // Sub-field for Autocomplete
-    @Field(name = "name_suggest", type = FieldType.Text, analyzer = "autocomplete_analyzer")
+
+    @Field(type = FieldType.Text, analyzer = "autocomplete_analyzer", searchAnalyzer = "standard")
     private String nameSuggest;
 
-    @Field(type = FieldType.Keyword) // Keyword is required for Aggregations/Sorting
+    @Field(type = FieldType.Keyword)
     private String location;
 
     @Field(type = FieldType.Double)
