@@ -9,6 +9,7 @@ import com.hotel.service.HotelService.Filter.HotelSpecs;
 import com.hotel.service.HotelService.Repositories.HotelRepo;
 import com.hotel.service.HotelService.entities.Hotel;
 import com.hotel.service.HotelService.services.HotelService;
+import com.hotel.service.HotelService.multipleDbManagement.ReadOnly; // <--- Custom AOP Annotation
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,14 +18,15 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.time.LocalDateTime; // <--- For sync tracking
 import java.util.Collections;
 import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class HotelServiceImp implements HotelService {
@@ -32,32 +34,24 @@ public class HotelServiceImp implements HotelService {
     private final HotelRepo hotelRepo;
     private final Logger log = LoggerFactory.getLogger(HotelServiceImp.class);
 
-    // Create-----
     @Override
+    @Transactional // Hits PRIMARY DB
     @Caching(evict = {
-            @CacheEvict(value = "hotel_search", allEntries = true), // ---Clears all search results
-            @CacheEvict(value = "hotels", allEntries = true)        //--- Clears your "getAll" list
+            @CacheEvict(value = "hotel_search", allEntries = true),
+            @CacheEvict(value = "hotels", allEntries = true)
     })
     public Hotel create(Hotel hotel) {
-
+        // Set timestamp so the Scheduler can find this for Elasticsearch sync
+        hotel.setUpdatedAt(LocalDateTime.now());
         return hotelRepo.save(hotel);
     }
 
-    // get All Hotels ---Testing perpose -----
     @Override
-    @Cacheable(value = "hotels")
-    public List<Hotel> getAllHotels() {
-
-        log.info("------Getting All Hotels from DB--------");
-        return hotelRepo.findAll();
-    }
-
-
-    @Override
+    @ReadOnly // --- Routes this query to Replicas 1, 2, or 3
     @Cacheable(
             value = "hotel_search",
             key = "{#name, #location, #lastId, #size}",
-            unless = "#result.content.isEmpty()"
+            unless = "#result.content().isEmpty()"
     )
     public PaginatedResponse<HotelResponse> getHotelsPaginated(
             String name,
@@ -65,91 +59,74 @@ public class HotelServiceImp implements HotelService {
             String lastId,
             int size
     ) {
-        //--- Ensure size is reasonable to prevent Memory/DDoS issues
         int fetchSize = Math.min(size, 100);
-
         Specification<Hotel> spec = HotelSpecs.getSpec(name, location, lastId);
 
-        //---Fetch using Fluent API - Efficient Index Seek
         List<HotelProjection> projections = hotelRepo.findBy(spec, q -> q
                 .as(HotelProjection.class)
                 .sortBy(Sort.by("id").ascending())
-                .limit(fetchSize + 1) // Fetch 1 extra to check for the next page
+                .limit(fetchSize + 1)
                 .all()
         );
 
-        // --Handle Empty Results early
         if (projections.isEmpty()) {
-            return new PaginatedResponse<>(Collections.emptyList(), null);
+            return new PaginatedResponse<>(Collections.emptyList(), null, null);
         }
 
-        // ---Map to Record - Use Streams for readability and immutability
         List<HotelResponse> content = projections.stream()
-                .limit(fetchSize) // Don't include the extra "check" record in the result
+                .limit(fetchSize)
                 .map(p -> new HotelResponse(
                         p.getId(),
                         p.getName(),
                         p.getLocation(),
-                        p.getAvgRating()
+                        p.getAvgRating(),
+                        null // DB doesn't have ES Score
                 ))
                 .toList();
 
-        //== Determine the Next Cursor
         String nextCursor = null;
         if (projections.size() > fetchSize) {
-            // The last item (index fetchSize) is the starting point for the next request
             nextCursor = projections.get(fetchSize).getId();
         }
 
-
-        log.info("Hotel Search: name={}, loc={}, results={}, hasNext={}",
-                name, location, content.size(), nextCursor != null);
-
-        return new PaginatedResponse<>(content, nextCursor);
+        return new PaginatedResponse<>(content, nextCursor, null);
     }
 
-
     @Override
-    @Cacheable(value = "hotel",key = "#hotelId")
+    @ReadOnly // <--- Hits Replicas
+    @Cacheable(value = "hotel", key = "#hotelId")
     public HotelSummaryDto getHotelById(String hotelId) {
-
-        log.info("------Getting  Hotel from DB- ID : ->{}",hotelId);
-
-            Hotel Hotel = hotelRepo.findById(hotelId).orElseThrow(()-> new ResourceNotFoundException("Hotel Not Found"));
-            return toHotelDto(Hotel);
-
-
+        log.info("Getting Hotel from Replica DB - ID: {}", hotelId);
+        Hotel hotel = hotelRepo.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hotel Not Found"));
+        return toHotelDto(hotel);
     }
 
-
-    // -----UPDATE--
     @Override
+    @Transactional // Hits PRIMARY DB
     @Caching(evict = {
             @CacheEvict(value = "hotels", allEntries = true),
             @CacheEvict(value = "hotel_search", allEntries = true)
     })
     @CachePut(value = "hotel", key = "#id")
     public HotelSummaryDto updateHotel(String id, Hotel hotelDetails) {
-        log.info("Updating Hotel ID: {}", id);
-
-        //------ Get the existing full record
         Hotel existingHotel = hotelRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel Not Found"));
 
-        //----- Update only the allowed fields
         if (hotelDetails.getName() != null) existingHotel.setName(hotelDetails.getName());
         if (hotelDetails.getLocation() != null) existingHotel.setLocation(hotelDetails.getLocation());
         if (hotelDetails.getAbout() != null) existingHotel.setAbout(hotelDetails.getAbout());
         if (hotelDetails.getContact() != null) existingHotel.setContact(hotelDetails.getContact());
 
-        Hotel Hotel = hotelRepo.save(existingHotel);
+        // Update timestamp for Scheduler sync
+        existingHotel.setUpdatedAt(LocalDateTime.now());
 
-
-        return toHotelDto(Hotel);
+        Hotel saved = hotelRepo.save(existingHotel);
+        return toHotelDto(saved);
     }
 
-    // -----DELETE
     @Override
+    @Transactional // Hits PRIMARY DB
     @Caching(evict = {
             @CacheEvict(value = "hotel", key = "#hotelId"),
             @CacheEvict(value = "hotels", allEntries = true),
@@ -158,30 +135,18 @@ public class HotelServiceImp implements HotelService {
     public void deleteHotel(String hotelId) {
         int deletedCount = hotelRepo.deleteByIdIfNotNull(hotelId);
         if (deletedCount == 0) {
-            // No hotel deleted, either null or invalid ID
             throw new ResourceNotFoundException("Hotel not found or invalid ID");
         }
     }
 
-
-
-    //Converting Dto-----------
-
-    private HotelSummaryDto toHotelDto(Hotel Hotel){
-
-
+    private HotelSummaryDto toHotelDto(Hotel hotel) {
         return HotelSummaryDto.builder()
-                .id(Hotel.getId())
-                .name(Hotel.getName())
-                .avgRating(Hotel.getAvgRating())
-                .location(Hotel.getLocation())
-                .about(Hotel.getAbout())
-                .contact(Hotel.getContact()).build();
-
-
+                .id(hotel.getId())
+                .name(hotel.getName())
+                .avgRating(hotel.getAvgRating())
+                .location(hotel.getLocation())
+                .about(hotel.getAbout())
+                .contact(hotel.getContact())
+                .build();
     }
-
-
-
-
 }

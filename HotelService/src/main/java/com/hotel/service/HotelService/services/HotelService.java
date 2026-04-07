@@ -13,7 +13,6 @@ public interface HotelService {
         Hotel create(Hotel hotel);
 
 
-        List<Hotel> getAllHotels();
 
     PaginatedResponse<HotelResponse> getHotelsPaginated(String name, String location, String lastId, int size);
 
