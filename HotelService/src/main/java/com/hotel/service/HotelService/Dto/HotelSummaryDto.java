@@ -19,5 +19,5 @@ public class HotelSummaryDto implements Serializable {
     private String location;
     private String contact ;
     private String about;
-    private String avgRating;
+    private Double avgRating;
 }
