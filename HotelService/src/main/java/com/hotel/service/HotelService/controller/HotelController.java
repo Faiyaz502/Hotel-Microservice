@@ -5,6 +5,7 @@ import com.hotel.service.HotelService.Dto.HotelResponse;
 import com.hotel.service.HotelService.Dto.HotelSummaryDto;
 import com.hotel.service.HotelService.Dto.PaginatedResponse;
 import com.hotel.service.HotelService.entities.Hotel;
+import com.hotel.service.HotelService.imp.HotelSearchService;
 import com.hotel.service.HotelService.services.HotelService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import java.util.UUID;
 public class HotelController {
 
     private final HotelService hotelService;
+    private final HotelSearchService hotelSearchService;
     private final Logger log = LoggerFactory.getLogger(HotelController.class);
 
     //  CREATE =================
@@ -49,6 +51,20 @@ public class HotelController {
 
         log.info("GET : Search Hotels - name: {}, loc: {}", name, location);
         return ResponseEntity.ok(hotelService.getHotelsPaginated(name, location, lastId, size));
+    }
+
+    // -------Elastic Search =================
+    @GetMapping
+    public ResponseEntity<PaginatedResponse<HotelResponse>> getAllHotelsSearch(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String lastId,
+            @RequestParam(required = false) Double minRating,
+            @RequestParam(required = false) Double lastScore,
+            @RequestParam(defaultValue = "10") int size) {
+
+        log.info("GET :Elastic Search Hotels - name: {}, loc: {},MinRating: {},lastScore: {}", name, location,minRating,lastScore);
+        return ResponseEntity.ok(hotelSearchService.searchAdvanced(name, location,minRating,lastId,lastScore,size));
     }
 
 

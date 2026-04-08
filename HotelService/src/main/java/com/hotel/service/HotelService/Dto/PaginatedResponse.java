@@ -6,6 +6,7 @@ import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @AllArgsConstructor
@@ -17,4 +18,6 @@ public class PaginatedResponse<T> implements Serializable {
     private List<T> content;
     private String nextCursor;
     private Double nextScore;
+
+//    Map<String, Double> avgRatingPerLocation;
 }
