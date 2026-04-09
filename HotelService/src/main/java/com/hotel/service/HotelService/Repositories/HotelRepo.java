@@ -20,6 +20,9 @@ import java.util.List;
 @Repository
 public interface HotelRepo extends JpaRepository<Hotel,String>, JpaSpecificationExecutor<Hotel> {
 
+    @Query("SELECT MAX(h.updatedAt) FROM Hotel h")
+    LocalDateTime findMaxUpdatedAt();
+
 
 
 

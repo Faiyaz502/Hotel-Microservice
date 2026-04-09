@@ -51,7 +51,7 @@ public class HotelServiceImp implements HotelService {
     @Cacheable(
             value = "hotel_search",
             key = "{#name, #location, #lastId, #size}",
-            unless = "#result.content().isEmpty()"
+            unless = "#result.getContent().isEmpty()"
     )
     public PaginatedResponse<HotelResponse> getHotelsPaginated(
             String name,
@@ -143,7 +143,7 @@ public class HotelServiceImp implements HotelService {
         return HotelSummaryDto.builder()
                 .id(hotel.getId())
                 .name(hotel.getName())
-                .avgRating(hotel.getAvgRating())
+                .avgRating(Double.valueOf(hotel.getAvgRating()))
                 .location(hotel.getLocation())
                 .about(hotel.getAbout())
                 .contact(hotel.getContact())

@@ -40,8 +40,8 @@ public class HotelSearchService {
     @ReadOnly
     @Cacheable(
             value = "hotel_search",
-            key = "{#name, #location, #minRating, #lastId}",
-            unless = "#result.content().isEmpty()"
+            key = "{#name, #location, #minRating, #lastId, #lastScore}",
+            unless = "#result.getContent().isEmpty()"
     )
     @CircuitBreaker(name = "hotelSearchCB", fallbackMethod = "jpaFallback")
     public PaginatedResponse<HotelResponse> searchAdvanced(
@@ -56,8 +56,7 @@ public class HotelSearchService {
 
         NativeQueryBuilder queryBuilder = NativeQuery.builder()
                 .withQuery(q -> q.bool(b -> {
-                    // Full-Text + Fuzzy Search
-                    if (name != null && !name.isEmpty()) {
+                    if (name != null && !name.isBlank()) {
                         b.must(m -> m.match(mt -> mt
                                 .field("nameSuggest")
                                 .query(name)
@@ -66,37 +65,41 @@ public class HotelSearchService {
                         ));
                     }
 
-                    // Filtering: location
-                    if (location != null && !location.isEmpty()) {
+                    if (location != null && !location.isBlank()) {
                         b.filter(f -> f.term(t -> t.field("location").value(location)));
                     }
 
-                    // Filtering: avgRating
                     if (minRating != null) {
                         b.filter(f -> f.range(r -> r
-                                .number(n -> n.field("avgRating").gte(minRating))
+                                .number(n -> n
+                                        .field("avgRating")
+                                        .gte(minRating)
+                                )
                         ));
                     }
-
                     return b;
                 }))
-                // Sorting: avgRating desc, id asc for tie-breaker
-                .withSort(Sort.by(Sort.Order.desc("avgRating"), Sort.Order.asc("id")))
-                // Aggregation: average rating per location
-                .withAggregation("avg_rating_per_location", Aggregation.of(a -> a
-                        .terms(t -> t.field("location"))
-                        .aggregations("avg_score", sa -> sa.avg(avg -> avg.field("avgRating")))
-                ))
-                // Suggesters: improved term suggestion
-                .withSuggester(Suggester.of(s -> s
-                        .suggesters("name-suggestion", sug -> sug
-                                .text(name != null ? name : "")
-                                .term(t -> t.field("name"))
-                        )
-                ))
+                .withSort(Sort.by(Sort.Order.desc("avgRating"), Sort.Order.asc("_id")))
                 .withPageable(PageRequest.of(0, size));
 
-        // Cursor pagination (searchAfter)
+// FIX 1: Only add Aggregation if data exists or under specific conditions
+// If location is null, performing terms agg on location is heavy/error-prone
+        queryBuilder.withAggregation("avg_rating_per_location", Aggregation.of(a -> a
+                .terms(t -> t.field("location"))
+                .aggregations("avg_score", sa -> sa.avg(avg -> avg.field("avgRating")))
+        ));
+
+// FIX 2: Only add Suggester if there is actually a name to suggest from
+        if (name != null && name.length() >= 2) {
+            queryBuilder.withSuggester(Suggester.of(s -> s
+                    .suggesters("name-suggestion", sug -> sug
+                            .text(name)
+                            .term(t -> t.field("name"))
+                    )
+            ));
+        }
+
+// FIX 3: Cursor pagination check
         if (lastId != null && lastScore != null) {
             queryBuilder.withSearchAfter(List.of(lastScore, lastId));
         }

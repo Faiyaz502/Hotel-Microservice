@@ -5,10 +5,12 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.Setting;
 
 @Getter @Setter @Builder
 @AllArgsConstructor @NoArgsConstructor
-@Document(indexName = "hotels")
+@Document(indexName = "hotels", createIndex = true)
+@Setting(settingPath = "es-settings.json")
 public class HotelIndex {
 
     @Id
