@@ -54,7 +54,7 @@ public class HotelController {
     }
 
     // -------Elastic Search =================
-    @GetMapping
+    @GetMapping("/ElasticSearch")
     public ResponseEntity<PaginatedResponse<HotelResponse>> getAllHotelsSearch(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String location,
