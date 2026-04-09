@@ -1,5 +1,7 @@
 package com.hotel.service.HotelService.Config;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,6 +11,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
+@MappedSuperclass
 public abstract class BaseEntity implements Serializable {
 
     @Serial
@@ -16,5 +19,6 @@ public abstract class BaseEntity implements Serializable {
 
     // Common fields for all entities
     private LocalDateTime createdAt;
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

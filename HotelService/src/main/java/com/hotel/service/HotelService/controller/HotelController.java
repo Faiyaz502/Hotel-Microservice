@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -61,7 +62,7 @@ public class HotelController {
             @RequestParam(required = false) String lastId,
             @RequestParam(required = false) Double minRating,
             @RequestParam(required = false) Double lastScore,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size) throws IOException {
 
         log.info("GET :Elastic Search Hotels - name: {}, loc: {},MinRating: {},lastScore: {}", name, location,minRating,lastScore);
         return ResponseEntity.ok(hotelSearchService.searchAdvanced(name, location,minRating,lastId,lastScore,size));

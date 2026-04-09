@@ -13,8 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "Hotels", indexes = {
-        // ------ index covers both the Search (name) and the Cursor (id)
+@Table(name = "hotels", indexes = { // Change "Hotels" to "hotels"
         @Index(name = "idx_hotel_name_pagination", columnList = "name, id"),
         @Index(name = "idx_hotel_location", columnList = "location")
 })

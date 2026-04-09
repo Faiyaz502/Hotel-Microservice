@@ -1,4 +1,7 @@
+version: '3.8'
+
 services:
+  # --- Kafka 4.1.0 ---
   kafka:
     image: apache/kafka:4.1.0
     container_name: kafka
@@ -19,8 +22,121 @@ services:
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
     volumes:
-      - kafka-data:/tmp/kraft-combined-logs  
+      - kafka-data:/tmp/kraft-combined-logs
+    networks:
+      - hotel-network
     restart: unless-stopped
 
+  # --- PostgreSQL 17 Primary ---
+  postgres-primary:
+    image: bitnami/postgresql:17.4.0
+    container_name: postgres-primary
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=root
+      - POSTGRESQL_DATABASE=Microservice-hotel
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+    volumes:
+      - pg-primary-data:/bitnami/postgresql
+    networks:
+      - hotel-network
+
+  # --- PostgreSQL 17 Replicas ---
+  postgres-replica-1:
+    image: bitnami/postgresql:17.4.0
+    container_name: postgres-replica-1
+    depends_on:
+      - postgres-primary
+    environment:
+      - POSTGRESQL_MASTER_HOST=postgres-primary
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=root
+      - POSTGRESQL_DATABASE=Microservice-hotel
+    ports:
+      - "5433:5432"
+    networks:
+      - hotel-network
+
+  postgres-replica-2:
+    image: bitnami/postgresql:17.4.0
+    container_name: postgres-replica-2
+    depends_on:
+      - postgres-primary
+    environment:
+      - POSTGRESQL_MASTER_HOST=postgres-primary
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=root
+      - POSTGRESQL_DATABASE=Microservice-hotel
+    ports:
+      - "5434:5432"
+    networks:
+      - hotel-network
+
+  postgres-replica-3:
+    image: bitnami/postgresql:17.4.0
+    container_name: postgres-replica-3
+    depends_on:
+      - postgres-primary
+    environment:
+      - POSTGRESQL_MASTER_HOST=postgres-primary
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=root
+      - POSTGRESQL_DATABASE=Microservice-hotel
+    ports:
+      - "5435:5432"
+    networks:
+      - hotel-network
+
+  # --- Search & Cache ---
+  hotel-redis:
+    image: redis:7-alpine
+    container_name: hotel-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - hotel-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.18.1
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  hotel-zipkin:
+    image: openzipkin/zipkin
+    container_name: hotel-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - hotel-network
+
 volumes:
-  kafka-data:  
+  kafka-data:
+  es-data:
+  pg-primary-data:
+
+networks:
+  hotel-network:
+    driver: bridge

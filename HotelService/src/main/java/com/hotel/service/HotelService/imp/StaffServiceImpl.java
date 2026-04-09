@@ -56,6 +56,6 @@ public class StaffServiceImpl implements StuffService {
             resultList = projections;
         }
 
-        return new PaginatedResponse<>(resultList, nextId);
+        return new PaginatedResponse<>(resultList, nextId,null);
     }
 }

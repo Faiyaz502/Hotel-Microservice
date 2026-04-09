@@ -1,5 +1,6 @@
 package com.hotel.service.HotelService.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
@@ -11,6 +12,7 @@ import org.springframework.data.elasticsearch.annotations.Setting;
 @AllArgsConstructor @NoArgsConstructor
 @Document(indexName = "hotels", createIndex = true)
 @Setting(settingPath = "es-settings.json")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class HotelIndex {
 
     @Id
