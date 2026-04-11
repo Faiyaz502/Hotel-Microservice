@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Search Engine</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.suggestion-item:hover { background-color: #f3f4f6; }
+.loader {
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center pt-20">
+
+<div class="w-full max-w-2xl px-4">
+  <div class="text-center mb-8">
+    <h1 class="text-4xl font-bold text-gray-800">Hotel <span class="text-blue-600">Search</span></h1>
+    <p class="text-gray-500 text-sm mt-2">Elasticsearch & DB Fallback Powered</p>
+  </div>
+
+  <div class="relative">
+    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+      <span id="loadingIcon" class="hidden"><div class="loader"></div></span>
+    </div>
+
+    <input type="text" id="searchInput" autocomplete="off"
+      placeholder="Start typing hotel name (e.g. Pan)..."
+      class="w-full p-4 pl-12 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all">
+
+    <div id="suggestions"
+      class="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 hidden overflow-hidden">
+    </div>
+  </div>
+
+  <div class="mt-6 flex justify-between items-center px-2">
+    <div id="resultsInfo" class="text-sm text-gray-600 font-medium"></div>
+    <div id="tokenStatus" class="text-xs px-3 py-1 rounded-full bg-red-100 text-red-600">JWT Missing</div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('searchInput');
+  const suggestionsBox = document.getElementById('suggestions');
+  const resultsInfo = document.getElementById('resultsInfo');
+  const tokenStatus = document.getElementById('tokenStatus');
+  const loadingIcon = document.getElementById('loadingIcon');
+
+  const API_URL = 'http://localhost:8084/api/v1/hotels/ElasticSearch?name=';
+
+  const updateTokenDisplay = () => {
+    const token = localStorage.getItem('jwt_token');
+    if (token && token !== 'undefined' && token !== 'null') {
+      tokenStatus.innerText = "JWT Active";
+      tokenStatus.classList.replace('bg-red-100', 'bg-green-100');
+      tokenStatus.classList.replace('text-red-600', 'text-green-600');
+      return token;
+    } else {
+      tokenStatus.innerText = "JWT Missing";
+      tokenStatus.classList.replace('bg-green-100', 'bg-red-100');
+      tokenStatus.classList.replace('text-green-600', 'text-red-600');
+      return null;
+    }
+  };
+  updateTokenDisplay();
+
+  searchInput.addEventListener('input', async (e) => {
+    const query = e.target.value.trim();
+    const token = updateTokenDisplay();
+
+    if (query.length < 1) { // allow even empty query for initial full results
+      suggestionsBox.classList.add('hidden');
+      resultsInfo.innerText = "";
+      return;
+    }
+
+    loadingIcon.classList.remove('hidden');
+
+    try {
+      const response = await fetch(`${API_URL}${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      console.log(data);
+      
+
+      // 🔑 Use data.content since backend returns PaginatedResponse
+      const hotels = Array.isArray(data.content) ? data.content : [];
+
+      if (hotels.length === 0) {
+        suggestionsBox.innerHTML = '<div class="p-4 text-gray-400 text-center">No matching hotels found</div>';
+        resultsInfo.innerText = 'No results';
+        suggestionsBox.classList.remove('hidden');
+        return;
+      }
+
+      suggestionsBox.innerHTML = hotels.map(hotel => `
+        <div class="suggestion-item p-4 border-b border-gray-50 cursor-pointer transition-all"
+             onclick="selectHotel('${hotel.name.replace(/'/g, "\\'")}')">
+          <div class="font-bold text-gray-800">${hotel.name}</div>
+          <div class="text-xs text-gray-500 mt-1 flex items-center">
+            <span class="mr-3">📍 ${hotel.location || 'Unknown'}</span>
+            <span class="text-yellow-500">★ ${hotel.avgRating || '0.0'}</span>
+            ${hotel.lastScore ? `<span class="ml-3 text-blue-500 font-medium">Score: ${hotel.lastScore.toFixed(2)}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      suggestionsBox.classList.remove('hidden');
+      resultsInfo.innerText = `Displaying ${hotels.length} results`;
+
+    } catch (error) {
+      console.error('Fetch error:', error);
+      suggestionsBox.innerHTML = `<div class="p-4 text-red-500 text-center text-sm">${error.message}</div>`;
+      suggestionsBox.classList.remove('hidden');
+    } finally {
+      loadingIcon.classList.add('hidden');
+    }
+  });
+
+  window.selectHotel = (name) => {
+    searchInput.value = name;
+    suggestionsBox.classList.add('hidden');
+    resultsInfo.innerText = `Selected: ${name}`;
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+      suggestionsBox.classList.add('hidden');
+    }
+  });
+});
+</script>
+
+</body>
+</html>

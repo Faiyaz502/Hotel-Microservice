@@ -30,8 +30,6 @@ public class BookingController {
             @RequestBody BookingHoldRequest request,
             @RequestHeader("X-Idempotency-Key") String idempotencyKey) {
 
-
-
         String paymentToken = bookingService.initiateHold(
                 request.getHotelId(),
                 request.getRoomTypeId(),
@@ -39,6 +37,7 @@ public class BookingController {
                 request.getCheckOut(),
                 request.getUserId(),
                 idempotencyKey);
+
 
         return ResponseEntity.ok(paymentToken);
     }
