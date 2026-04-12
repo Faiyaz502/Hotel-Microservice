@@ -82,7 +82,7 @@ public class InventoryGapScheduler {
 
                 String currentKey = meta.getHotelId() + "_" + meta.getRoomTypeId() + "_" + date;
 
-                // 2. If the slot is missing, fill the gap
+                //  If the slot is missing, fill the gap
                 if (!existingKeys.contains(currentKey)) {
                     buffer.add(RoomInventory.builder()
                             .hotelId(meta.getHotelId())
