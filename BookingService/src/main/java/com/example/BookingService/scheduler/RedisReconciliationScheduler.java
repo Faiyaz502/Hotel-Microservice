@@ -25,7 +25,7 @@ public class RedisReconciliationScheduler {
         log.info("Executing High-Precision Redis Sync...");
 
         LocalDate today = LocalDate.now();
-        LocalDate end = today.plusDays(7); // Focus on the next 7 days (the "Rush" window)
+        LocalDate end = today.plusDays(7); // Focus on the next 7 days
 
         List<RoomInventory> activeInventories = inventoryRepo.findAllByInventoryDateBetween(today, end);
 
@@ -45,11 +45,20 @@ public class RedisReconciliationScheduler {
                     continue;
                 }
 
-                if (redisVal != dbBooked) {
-                    // If the key is 'leaked' (Redis > DB) or 'missing' (Redis < DB)
-                    // and it's not a brand new hold, we force sync it.
-                    redisTemplate.opsForValue().set(key, String.valueOf(dbBooked), Duration.ofHours(24));
-                    log.warn("Rush Sync applied to {}: Redis {} -> DB {}", key, redisVal, dbBooked);
+                int totalCapacity = inv.getTotalCapacity();
+
+       // Max holds allowed = remaining capacity
+                int maxAllowedHolds = totalCapacity - dbBooked;
+
+       // Case 1: Too many holds (leak / corruption)
+                if (redisVal > maxAllowedHolds) {
+
+                    int leaked = redisVal - maxAllowedHolds;
+
+                    redisTemplate.opsForValue().decrement(key, leaked);
+
+                    log.warn("Leaked holds cleaned for {}: removed {} (Redis {} -> Allowed {})",
+                            key, leaked, redisVal, maxAllowedHolds);
                 }
 
             } catch (Exception e) {
