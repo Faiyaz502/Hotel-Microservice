@@ -5,10 +5,12 @@
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group">
-        <intProp name="ThreadGroup.num_threads">9</intProp>
+        <intProp name="ThreadGroup.num_threads">100</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
@@ -32,7 +34,7 @@
         <hashTree/>
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HTTP Request">
           <stringProp name="HTTPSampler.domain">localhost</stringProp>
-          <stringProp name="HTTPSampler.port">8088</stringProp>
+          <stringProp name="HTTPSampler.port">8084</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.path">/api/v1/bookings/hold</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
@@ -101,7 +103,7 @@
               </elementProp>
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Authorization</stringProp>
-                <stringProp name="Header.value">Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6IjEiLCJyb2xlcyI6WyJST0xFX0FETUlOIl0sImlhdCI6MTc3Mzg1NDE2Mn0.Sc_oB53aQe-UO-YNQU-B8R9vrRXCAyVQx8jf44HW25ImeBxZnIz94wunZabvC1GBY_iJwC8g5q2tPRe5vi0YUQ</stringProp>
+                <stringProp name="Header.value">Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6IjEiLCJyb2xlcyI6WyJST0xFX0FETUlOIl0sImlhdCI6MTc3NjEwOTIyM30.Z0y0-5FupvP9srfmvwOav0rAcTJ0BVkfzUuuplUDn2l25Pkqm5oRu1XybuatIaQ3NPw3PErG1c0_HIXGNd7-WA</stringProp>
               </elementProp>
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
