@@ -93,7 +93,7 @@ public class HotelServiceImp implements HotelService {
     }
 
     @Override
-    @ReadOnly // <--- Hits Replicas
+    @ReadOnly // Hits Replicas
     @Cacheable(value = "hotel", key = "#hotelId")
     public HotelSummaryDto getHotelById(String hotelId) {
         log.info("Getting Hotel from Replica DB - ID: {}", hotelId);

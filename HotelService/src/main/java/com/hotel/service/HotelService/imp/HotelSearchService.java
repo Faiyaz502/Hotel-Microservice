@@ -76,7 +76,7 @@ public class HotelSearchService {
                     ))
                     .toList();
 
-            // Cursor pagination (optional)
+            // Cursor pagination
             String nextId = null;
             Double nextScore = null;
             if (!content.isEmpty() && content.size() >= size) {
@@ -88,7 +88,7 @@ public class HotelSearchService {
             return new PaginatedResponse<>(content, nextId, nextScore);
 
         } catch (Exception e) {
-            log.error("❌ Elasticsearch failed: ", e);
+            log.error(" Elasticsearch failed: ", e);
             throw e; // Circuit breaker will call fallback
         }
     }
@@ -98,7 +98,7 @@ public class HotelSearchService {
             String name, String location, Double minRating,
             String lastId, Double lastScore, int size, Throwable t) {
 
-        log.error("⚠️ ES DOWN → Falling back to DB: {}", t.getMessage());
+        log.error("ES DOWN → Falling back to DB: {}", t.getMessage());
         return hotelService.getHotelsPaginated(name, location, lastId, size);
     }
 }
