@@ -17,7 +17,20 @@ spring:
             allowCredentials: true
             maxAge: 3600
 
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 50    # Allowed 50 requests/sec
+            redis-rate-limiter.burstCapacity: 100  # Can burst to 100
+            redis-rate-limiter.requestedTokens: 1
+            key-resolver: "#{@ipKeyResolver}"
 
+      httpclient:
+        connect-timeout: 2000
+        response-timeout: 5s
+        pool:
+          type: elastic
+          max-idle-time: 15s
 
       routes:
         - id: USERSERVICE
