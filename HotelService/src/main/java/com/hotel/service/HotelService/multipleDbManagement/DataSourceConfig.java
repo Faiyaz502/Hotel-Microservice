@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Configuration
 public class DataSourceConfig {
 
-    // --- 1. Define individual DataSources using the YAML keys ---
+    //  Define individual DataSources using the YAML keys ---
 
     @Bean
     @ConfigurationProperties(prefix = "spring.datasource.primary")
@@ -43,7 +43,7 @@ public class DataSourceConfig {
         return DataSourceBuilder.create().type(HikariDataSource.class).build();
     }
 
-    // --- 2. The Routing Logic (Switching between Primary and Replicas) ---
+    //  The Routing Logic (Switching between Primary and Replicas) ---
 
     @Bean
     @Primary
@@ -61,7 +61,7 @@ public class DataSourceConfig {
         return routingDataSource;
     }
 
-    // --- 3. Round-Robin Load Balancer for the 3 Replicas ---
+    // Round-Robin Load Balancer for the 3 Replicas ---
 
     private DataSource replicaLoadBalancer() {
         List<DataSource> replicas = List.of(
