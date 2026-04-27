@@ -23,8 +23,7 @@ public class TransactionInitiator {
              */
             Map<String, String> postData = ParameterBuilder.constructRequestParameters();
             /**
-             * Provide your SSL Commerz store Id and Password by this following constructor.
-             * If Test Mode then insert true and false otherwise.
+
              */
             SSLCommerz sslcz = new SSLCommerz("testbox", "qwerty", true);
 
