@@ -10,7 +10,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @Component
-@Order(-10) // Must run before RequestRateLimiter
+@Order(-10)
 public class BlacklistFilter implements GlobalFilter {
 
     private final ReactiveStringRedisTemplate redisTemplate;
@@ -22,14 +22,17 @@ public class BlacklistFilter implements GlobalFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String ip = exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
+
+        String ip = IpUtil.getClientIp(exchange);
 
         return redisTemplate.hasKey(BL_PREFIX + ip)
                 .flatMap(isBlacklisted -> {
+
                     if (Boolean.TRUE.equals(isBlacklisted)) {
                         exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
                         return exchange.getResponse().setComplete();
                     }
+
                     return chain.filter(exchange);
                 });
     }

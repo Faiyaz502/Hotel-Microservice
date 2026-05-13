@@ -7,10 +7,11 @@ import reactor.core.publisher.Mono;
 
 @Configuration
 public class RateLimitConfig {
+
     @Bean
     public KeyResolver ipKeyResolver() {
         return exchange -> Mono.just(
-                exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+                IpUtil.getClientIp(exchange)
         );
     }
 }
