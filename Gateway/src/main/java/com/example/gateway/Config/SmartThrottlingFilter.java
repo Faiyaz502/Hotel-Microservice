@@ -20,6 +20,15 @@ public class SmartThrottlingFilter implements GlobalFilter {
     private static final String COUNT_PREFIX = "REQ_COUNT:";
     private static final String BL_PREFIX = "BLACKLIST:";
 
+    // How many 429s within the window before auto-ban
+    private static final long BAN_THRESHOLD = 5;
+
+    // Sliding window for counting 429 hits
+    private static final Duration COUNT_WINDOW = Duration.ofMinutes(5);
+
+    // How long the auto-ban lasts
+    private static final Duration BAN_DURATION = Duration.ofMinutes(15);
+
     public SmartThrottlingFilter(ReactiveStringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
@@ -35,24 +44,24 @@ public class SmartThrottlingFilter implements GlobalFilter {
                     }
 
                     String ip = IpUtil.getClientIp(exchange);
+                    String countKey = COUNT_PREFIX + ip;
+                    String banKey = BL_PREFIX + ip;
+
 
                     return redisTemplate.opsForValue()
-                            .increment(COUNT_PREFIX + ip)
+                            .setIfAbsent(countKey, "0", COUNT_WINDOW)   // only sets TTL on first creation
+                            .then(redisTemplate.opsForValue().increment(countKey))
                             .flatMap(count -> {
 
-                                // expire counter after 5 minutes
-                                return redisTemplate.expire(COUNT_PREFIX + ip, Duration.ofMinutes(5))
-                                        .then(Mono.defer(() -> {
+                                if (count >= BAN_THRESHOLD) {
+                                    // Threshold reached — ban the IP and clean up the counter
+                                    return redisTemplate.opsForValue()
+                                            .set(banKey, "Auto-banned after " + count + " rate-limit violations", BAN_DURATION)
+                                            .then(redisTemplate.delete(countKey))
+                                            .then();
+                                }
 
-                                            if (count >= 5) {
-                                                return redisTemplate.opsForValue()
-                                                        .set(BL_PREFIX + ip, "true", Duration.ofMinutes(15))
-                                                        .then(redisTemplate.delete(COUNT_PREFIX + ip))
-                                                        .then();
-                                            }
-
-                                            return Mono.empty();
-                                        }));
+                                return Mono.empty();
                             });
                 }));
     }

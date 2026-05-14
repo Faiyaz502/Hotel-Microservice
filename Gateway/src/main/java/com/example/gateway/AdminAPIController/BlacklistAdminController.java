@@ -1,7 +1,7 @@
 package com.example.gateway.AdminAPIController;
 
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
-
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -21,14 +21,14 @@ public class BlacklistAdminController {
         this.redisTemplate = redisTemplate;
     }
 
-
-///---------- Manually ban an IP.
+    // ---------- Manually ban an IP ----------
 
     @PostMapping("/{ip}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Mono<String> banIp(@PathVariable String ip, @RequestParam(defaultValue = "60") int minutes) {
+    public Mono<String> banIp(@PathVariable String ip,
+                              @RequestParam(defaultValue = "60") int minutes) {
         return ReactiveSecurityContextHolder.getContext()
-                .map(sc -> sc.getAuthentication().getName()) // Get admin username
+                .map(sc -> sc.getAuthentication().getName())
                 .flatMap(adminName -> {
                     String reason = "Banned by admin: " + adminName;
                     return redisTemplate.opsForValue()
@@ -37,8 +37,7 @@ public class BlacklistAdminController {
                 });
     }
 
-
-///  --------  Manually unban an IP.
+    // ---------- Manually unban an IP ----------
 
     @DeleteMapping("/{ip}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -52,14 +51,35 @@ public class BlacklistAdminController {
                 });
     }
 
-    ///------List all blacklisted IPs and the reason/admin who banned them.
+    // ---------- List all blacklisted IPs ----------
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Flux<String> listBlacklist() {
-        return redisTemplate.scan()
-                .filter(key -> key.startsWith(BL_PREFIX))
+        /*
+         * FIX: Always pass ScanOptions with a pattern and count hint.
+         *
+         * Old bug: redisTemplate.scan() with no options defaults to scanning ALL keys
+         * with no filter, which on a large Redis instance can:
+         *   1. Return thousands of unrelated keys that the filter() then has to sift through.
+         *   2. Cause latency spikes — SCAN is O(N) over the full keyspace.
+         *
+         * With match(BL_PREFIX + "*") Redis applies the pattern server-side, and
+         * count(100) is a hint to Redis about how many elements to return per internal
+         * iteration (it does NOT hard-limit results — all matching keys are still returned).
+         */
+        ScanOptions options = ScanOptions.scanOptions()
+                .match(BL_PREFIX + "*")
+                .count(100)
+                .build();
+
+        return redisTemplate.scan(options)
                 .flatMap(key -> redisTemplate.opsForValue().get(key)
-                        .map(value -> String.format("IP: %s | Reason: %s", key.replace(BL_PREFIX, ""), value)));
+                        .map(value -> String.format(
+                                "IP: %s | Reason: %s",
+                                key.replace(BL_PREFIX, ""),
+                                value
+                        ))
+                );
     }
 }

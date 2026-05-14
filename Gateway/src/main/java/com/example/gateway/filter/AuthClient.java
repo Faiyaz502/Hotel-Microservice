@@ -22,7 +22,7 @@ public class AuthClient {
     }
 
     @Retry(name = "authServiceRetry", fallbackMethod = "authFallback")
-    @CircuitBreaker(name = "authServiceCB", fallbackMethod = "fallback")
+    @CircuitBreaker(name = "authServiceCB", fallbackMethod = "authFallback")
     public Mono<Boolean> validateToken(String token) {
         log.info("----ValidToken Method Calling -------");
 
