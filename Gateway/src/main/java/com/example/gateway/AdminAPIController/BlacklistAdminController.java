@@ -56,18 +56,6 @@ public class BlacklistAdminController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Flux<String> listBlacklist() {
-        /*
-         * FIX: Always pass ScanOptions with a pattern and count hint.
-         *
-         * Old bug: redisTemplate.scan() with no options defaults to scanning ALL keys
-         * with no filter, which on a large Redis instance can:
-         *   1. Return thousands of unrelated keys that the filter() then has to sift through.
-         *   2. Cause latency spikes — SCAN is O(N) over the full keyspace.
-         *
-         * With match(BL_PREFIX + "*") Redis applies the pattern server-side, and
-         * count(100) is a hint to Redis about how many elements to return per internal
-         * iteration (it does NOT hard-limit results — all matching keys are still returned).
-         */
         ScanOptions options = ScanOptions.scanOptions()
                 .match(BL_PREFIX + "*")
                 .count(100)
